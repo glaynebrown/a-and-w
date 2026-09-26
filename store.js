@@ -89,7 +89,7 @@ const Store = (() => {
     signIn: (email, password) => auth.signInWithEmailAndPassword(email, password),
     signOut: async () => {
       await auth.signOut();
-      if (self.caches) await caches.delete('aw-photos-v1').catch(() => {});
+      if (self.caches) await caches.delete('aw-photos-v2').catch(() => {});
     },
     resetPassword: email => auth.sendPasswordResetEmail(email),
 

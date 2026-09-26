@@ -7,8 +7,8 @@
      so the timeline scrolls fast and works with no signal. Cleared on sign-out.
    - Everything else (database, login) goes straight to the network.
      Firestore keeps its own offline copy of the timeline. */
-const APP_CACHE = 'aw-app-v9';
-const PHOTO_CACHE = 'aw-photos-v1';
+const APP_CACHE = 'aw-app-v10';
+const PHOTO_CACHE = 'aw-photos-v2'; // v1 could hold failed downloads; it's cleared on update
 const APP_FILES = [
   './', 'index.html', 'styles.css', 'app.js', 'store.js', 'demo.js', 'dates.js', 'photos.js', 'todo.js', 'books.js', 'now.js', 'words.js', 'letters.js', 'seasons.js',
   'firebase-config.js', 'manifest.json', 'icon-192.png', 'apple-touch-icon.png',
@@ -63,6 +63,22 @@ async function cacheFirst(request, cacheName) {
   return response;
 }
 
+// Photos: saved copy first. The download is made in a way that shows whether
+// it really worked (the bucket allows this site), and only good ones are saved,
+// so a hiccup while loading many photos can't get stuck as a broken picture.
+async function photo(request) {
+  const cache = await caches.open(PHOTO_CACHE);
+  const saved = await cache.match(request.url);
+  if (saved) return saved;
+  try {
+    const response = await fetch(request.url, { mode: 'cors', credentials: 'omit' });
+    if (response.ok) cache.put(request.url, response.clone());
+    return response;
+  } catch (err) {
+    return fetch(request); // plain load as a fallback; not saved
+  }
+}
+
 self.addEventListener('fetch', event => {
   const request = event.request;
   if (request.method !== 'GET') return;
@@ -73,6 +89,6 @@ self.addEventListener('fetch', event => {
   } else if (url.hostname === 'www.gstatic.com' && url.pathname.startsWith('/firebasejs/')) {
     event.respondWith(cacheFirst(request, APP_CACHE));
   } else if (url.hostname === 'firebasestorage.googleapis.com') {
-    event.respondWith(cacheFirst(request, PHOTO_CACHE));
+    event.respondWith(photo(request));
   }
 });

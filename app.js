@@ -647,8 +647,17 @@ function whoChips(selected) {
   return twins().map(t => `<button type="button" class="chip ${t.key}" data-who="${t.key}" aria-pressed="${selected.includes(t.key)}">${esc(t.name)}</button>`).join('');
 }
 const readWho = root => $$('[data-who]', root).filter(b => b.getAttribute('aria-pressed') === 'true').map(b => b.dataset.who);
+// Picking who: with both on, tapping one picks just that twin. With one on,
+// tapping the other adds them back (both); tapping the same one also goes back
+// to both, so nobody is never an option.
 function bindToggles(root) {
-  $$('[data-who]', root).forEach(b => b.onclick = () => b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') !== 'true'));
+  const chips = $$('[data-who]', root);
+  chips.forEach(b => b.onclick = () => {
+    const on = chips.filter(x => x.getAttribute('aria-pressed') === 'true');
+    const allOn = on.length === chips.length;
+    chips.forEach(x => x.setAttribute('aria-pressed',
+      allOn ? x === b : on.length === 1 && on[0] === b ? true : x === b || on.includes(x)));
+  });
 }
 
 function renderForm(id, startKind) {
@@ -979,6 +988,15 @@ function renderSettings() {
     DB.signOut();
   };
 }
+
+// A photo that fails to load (a brief network hiccup) gets one quiet retry.
+document.addEventListener('error', e => {
+  const img = e.target;
+  if (!(img instanceof HTMLImageElement) || img.dataset.retried || !/firebasestorage/.test(img.src)) return;
+  img.dataset.retried = '1';
+  const src = img.src;
+  setTimeout(() => { img.src = ''; img.src = src; }, 1500);
+}, true);
 
 // ---------- tabs and "back to top" ----------
 // Tapping a tab starts that page at the top; tapping the tab you're already on
