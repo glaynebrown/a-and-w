@@ -609,3 +609,5 @@ button.web-card:disabled { opacity: .6; }
 .add-switch .chip { display: inline-flex; align-items: center; justify-content: center; gap: 6px; text-decoration: none; color: inherit; padding: 10px 6px; border-radius: 12px; }
 .add-switch .chip .icon { width: 16px; height: 16px; }
 .add-switch .chip[aria-pressed="true"] { color: var(--bg); }
+/* Same 12px gap below the In season card as between the other Home cards. */
+.season-home + .card { margin-top: 12px; }
