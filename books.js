@@ -288,7 +288,7 @@ async function makeBook(pick, progress) {
 
   // Months
   const months = new Map();
-  for (const m of list) {
+  for (const m of list.filter(x => x.kind !== 'growth')) {
     const k = Dates.monthKey(m.date);
     if (!months.has(k)) months.set(k, []);
     months.get(k).push(m);

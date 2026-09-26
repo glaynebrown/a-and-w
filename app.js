@@ -472,7 +472,7 @@ function renderHome() {
   const t = Dates.today();
   const md = t.slice(5);
   const shown = state.moments.filter(isOnTimeline);
-  const onThisDay = shown.filter(m => m.date.slice(5) === md && m.date < t);
+  const onThisDay = shown.filter(m => m.date.slice(5) === md && m.date < t && m.kind !== 'growth');
   const recent = shown.filter(m => (m.photos || []).length).slice(0, 6);
 
   const otd = onThisDay.map(m => {
@@ -507,9 +507,11 @@ function renderHome() {
 // ---------- timeline ----------
 // Two filters that combine: whose moments (both, Will, Millie) and what kind.
 const KIND_FILTERS = [['all', 'All'], ['first', '★ Firsts'], ['quote', 'Quotes'], ['words', 'Words'], ['growth', 'Growth']];
+// Growth checkups only show under the Growth filter (and on the chart), so
+// frequent weigh-ins don't crowd the All view.
 function matches(m, who, kind) {
   if (who !== 'both' && !(m.who || []).includes(who)) return false;
-  return kind === 'all' || m.kind === kind;
+  return kind === 'all' ? m.kind !== 'growth' : m.kind === kind;
 }
 
 function renderTimeline() {
@@ -539,7 +541,7 @@ function renderTimeline() {
   }).join('');
 
   const empty = state.moments.length
-    ? `<div class="card empty"><p>Nothing here with this filter yet.</p></div>`
+    ? `<div class="card empty"><p>${kind === 'words' ? 'Milestone cards show up here at their 50th, 100th, and 150th words, and beyond.' : 'Nothing here with this filter yet.'}</p></div>`
     : `<div class="card empty"><h2>Their story starts here</h2><p>Every moment you add shows up here, month by month.</p>
        <a class="btn primary" href="#/add">${ICON.camera} Add moment</a></div>`;
 
@@ -548,6 +550,9 @@ function renderTimeline() {
     <div class="seg" role="group" aria-label="Whose moments" style="margin-bottom:8px">${whoChips}</div>
     <div class="chips" role="group" aria-label="What kind">${kindChips}</div>
     ${kind === 'growth' ? `<a class="card wheel-card" href="#/growth">${ICON.chart}<div><h2>Growth chart</h2><p>Weight and height over time</p></div></a>` : ''}
+    ${kind === 'words' ? `<div class="card words-lists">${ICON.chat}<div><h2>Word lists</h2>
+      <p>${twins().filter(t => who === 'both' || who === t.key).map(t =>
+        `<a href="#/words/${t.key}">${esc(t.name)}’s words (${wordsInOrder(t.key).length})</a>`).join(' · ')}</p></div></div>` : ''}
     ${body || empty}`;
   $$('[data-who-f]').forEach(b => b.onclick = () => { state.filterWho = b.dataset.whoF; renderTimeline(); window.scrollTo(0, 0); });
   $$('[data-kind-f]').forEach(b => b.onclick = () => { state.filterKind = b.dataset.kindF; renderTimeline(); window.scrollTo(0, 0); });

@@ -537,3 +537,8 @@ button.web-card:disabled { opacity: .6; }
 .moment-text { font-family: var(--serif); font-size: 17px; line-height: 1.6; white-space: pre-line; margin: 8px 2px 0; }
 /* Long captions (like imported Facebook posts) show 4 lines on the timeline; the full text is on the moment page. */
 .card.moment .caption, .card.moment .journal-text { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.words-lists { display: flex; gap: 14px; align-items: center; }
+.words-lists > .icon { color: var(--muted); flex: none; }
+.words-lists h2 { font-size: 18px; }
+.words-lists p { font-size: 14px; }
+.words-lists a { color: var(--sage-ink); }
