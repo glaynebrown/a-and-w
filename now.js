@@ -159,19 +159,22 @@ function renderNow() {
 }
 
 // ---------- update a snapshot ----------
-function renderNowForm(key) {
+// Update: starts from the latest snapshot (today's is changed in place).
+// Fix an older one: pass its id (from the snapshot's own page -> Edit).
+function renderNowForm(key, snapId) {
   const t = twins().find(x => x.key === key);
   if (!t) { location.replace('#/now'); return; }
   const today = Dates.today();
-  const last = snapshotsFor(key)[0];
-  const todays = last && last.date === today ? last : null;
+  const older = snapId ? momentById(snapId) : null;
+  const last = older || snapshotsFor(key)[0];
+  const todays = older || (last && last.date === today ? last : null);
   const start = (last && last.answers) || {};
   const keep = todays ? [...(todays.photos || [])] : [], added = [];
 
   view.innerHTML = `
     <a class="back" href="#/now">${ICON.back} Cancel</a>
-    <h1 style="font-size:26px;margin-bottom:4px">${esc(t.name)} right now</h1>
-    <p class="muted small">${last ? 'Filled in from last time. Change what’s different, skip the rest.' : 'Answer whatever you like. Blank is fine.'}</p>
+    <h1 style="font-size:26px;margin-bottom:4px">${esc(t.name)} ${older ? 'on ' + esc(Dates.short(older.date)) : 'right now'}</h1>
+    <p class="muted small">${older ? 'Fix anything here. It only changes this snapshot.' : last ? 'Filled in from last time. Change what’s different, skip the rest.' : 'Answer whatever you like. Blank is fine.'}</p>
     ${nowFields().map(f => `<label class="field"><span class="field-label">${esc(f.label)}</span>
       <input type="text" data-a="${esc(f.key)}" value="${esc(start[f.key] || '')}" autocomplete="off"></label>`).join('')}
     <div class="field" style="margin-top:18px"><span class="field-label">Current photo (optional)</span><div class="picker" id="picker"></div>
@@ -193,11 +196,11 @@ function renderNowForm(key) {
     const progress = $('#progress');
     busy(e.target, async () => {
       const prepared = await prepareAll(added, progress);
-      const data = { kind: 'snapshot', who: [key], date: today, caption: '', answers };
+      const data = { kind: 'snapshot', who: [key], date: older ? older.date : today, caption: '', answers };
       if (todays) await DB.updateMoment(todays, data, prepared, pick.removed);
       else await DB.addMoment(data, prepared);
       state.nowTwin = key;
-      toast('Saved, and added to the timeline');
+      toast(older ? 'Saved' : 'Saved, and added to the timeline');
       goBack('#/now');
     }).finally(() => { progress.hidden = true; });
   };

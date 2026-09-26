@@ -586,7 +586,7 @@ function renderMoment(id) {
       `<a href="${esc(p.url)}" target="_blank" rel="noopener"><img src="${esc(p.url)}" alt="" loading="lazy" decoding="async"
         style="aspect-ratio:${p.w || 4}/${p.h || 3}"></a>`).join('')}</div>
     <div class="actions">
-      ${m.kind === 'snapshot' ? `<a class="btn" href="#/now">Right Now</a>` : `<a class="btn" href="#/moment/${esc(m.id)}/edit">Edit</a>`}
+      <a class="btn" href="#/moment/${esc(m.id)}/edit">Edit</a>
       <button class="btn danger" id="del">Delete</button>
     </div>`;
   $('#back').onclick = e => { e.preventDefault(); goBack('#/timeline'); };
@@ -606,6 +606,7 @@ function bindToggles(root) {
 
 function renderForm(id, startKind) {
   const m = id && id !== 'growth' ? momentById(id) : null;
+  if (m && m.kind === 'snapshot') return renderNowForm(m.who[0], m.id);
   if (id && id !== 'growth' && !m) return renderMoment(id);
   const form = {
     kind: m ? m.kind : startKind === 'growth' ? 'growth' : 'moment',
