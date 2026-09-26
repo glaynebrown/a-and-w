@@ -534,7 +534,7 @@ function renderIdea(id) {
     }));
   $('#del').onclick = () => confirmBox(`Delete “${i.title}”?`,
     beenThere(i) ? 'Photos from your visits stay on the timeline.' : 'This can’t be undone.',
-    'Delete', async () => { await DB.deleteIdea(i); toast('Deleted'); location.hash = '#/todo'; });
+    'Delete', async () => { await DB.deleteIdea(i); toast('Deleted'); goBack('#/todo'); });
 }
 
 function visitRow(v) {
@@ -674,11 +674,11 @@ function renderIdeaForm(id) {
       if (i) {
         await DB.updateIdea(i, data, prepared, pick.removed);
         toast('Saved');
-        location.hash = `#/idea/${i.id}`;
+        goBack(`#/idea/${i.id}`);
       } else {
         await DB.addIdea({ ...data, lastRating: null, hide: null }, prepared);
         toast('Saved');
-        location.hash = '#/todo';
+        goBack('#/todo');
       }
     }).finally(() => { progress.hidden = true; });
   };
@@ -775,7 +775,7 @@ function renderWent(id) {
       }
       await DB.patchIdea(i.id, patch);
       toast(prepared.length ? 'Saved, and added to the timeline' : 'Saved');
-      location.hash = `#/idea/${i.id}`;
+      goBack(`#/idea/${i.id}`);
     }).finally(() => { progress.hidden = true; });
   };
 }

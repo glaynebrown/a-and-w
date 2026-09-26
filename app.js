@@ -551,12 +551,22 @@ function renderTimeline() {
 }
 
 // ---------- one moment ----------
-function goBack(fallback) {
-  // Go back if we came from inside the app, otherwise to a sensible page.
+// Leaving a page (Back, Cancel, or after Save) steps back to where you came
+// from instead of stacking up a new page, so Back never loops. If the app was
+// opened straight to this page, it goes to `fallback` instead. `steps` skips
+// more than one page (e.g. after deleting from an edit screen).
+function goBack(fallback, steps = 1) {
   let inApp = false;
   try { inApp = sessionStorage.getItem('aw-nav') === '1'; } catch {}
-  if (inApp) history.back(); else location.hash = fallback;
+  if (inApp && history.length > steps) history.go(-steps); else location.replace(fallback);
 }
+// Every "‹ Back" / "‹ Cancel" link behaves the same way.
+document.addEventListener('click', e => {
+  const a = e.target.closest && e.target.closest('a.back');
+  if (!a || e.defaultPrevented) return;
+  e.preventDefault();
+  goBack(a.getAttribute('href') || '#/');
+});
 
 function renderMoment(id) {
   const m = momentById(id);
@@ -582,7 +592,7 @@ function renderMoment(id) {
   $('#back').onclick = e => { e.preventDefault(); goBack('#/timeline'); };
   $('#del').onclick = () => confirmBox('Delete this moment?',
     (m.photos || []).length ? 'Its photos will be deleted from A&W too. The originals on your phone aren’t touched.' : 'This can’t be undone.',
-    'Delete', async () => { await DB.deleteMoment(m); toast('Deleted'); location.hash = '#/timeline'; });
+    'Delete', async () => { await DB.deleteMoment(m); toast('Deleted'); goBack('#/timeline'); });
 }
 
 // ---------- add / edit ----------
@@ -736,11 +746,11 @@ function renderForm(id, startKind) {
       if (m) {
         await DB.updateMoment(m, data, prepared, form.removed, onEach);
         toast('Saved');
-        location.hash = `#/moment/${m.id}`;
+        goBack(`#/moment/${m.id}`);
       } else {
         await DB.addMoment(data, prepared, onEach);
         toast('Saved');
-        location.hash = '#/';
+        goBack('#/');
       }
       form.added.forEach(a => URL.revokeObjectURL(a.preview));
     }).finally(() => { progress.hidden = true; });
@@ -809,7 +819,7 @@ function renderAddOld() {
         done += g.files.length;
       }
       toast(`Added ${total} photo${total === 1 ? '' : 's'}`);
-      location.hash = '#/timeline';
+      goBack('#/timeline');
     }, 'Adding…').finally(() => { progress.hidden = true; });
   };
 }
@@ -892,7 +902,7 @@ function renderSettings() {
       await DB.saveSettings(patch);
       state.settings = { ...s, ...patch };
       toast('Saved');
-      location.hash = '#/';
+      goBack('#/');
     });
   };
 

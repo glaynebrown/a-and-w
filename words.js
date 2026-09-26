@@ -72,7 +72,7 @@ async function addWords(key, raw, early) {
 // ---------- the page ----------
 function renderWords(key) {
   const t = twins().find(x => x.key === key);
-  if (!t) { location.hash = '#/now'; return; }
+  if (!t) { location.replace('#/now'); return; }
   const list = wordsInOrder(key);
   const newestFirst = [...list].reverse();
   const nextMilestone = WORD_MILESTONES.find(n => n > list.length);

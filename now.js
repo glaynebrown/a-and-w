@@ -161,7 +161,7 @@ function renderNow() {
 // ---------- update a snapshot ----------
 function renderNowForm(key) {
   const t = twins().find(x => x.key === key);
-  if (!t) { location.hash = '#/now'; return; }
+  if (!t) { location.replace('#/now'); return; }
   const today = Dates.today();
   const last = snapshotsFor(key)[0];
   const todays = last && last.date === today ? last : null;
@@ -189,7 +189,7 @@ function renderNowForm(key) {
     Object.entries(start).forEach(([k, v]) => { if (!nowFields().some(f => f.key === k) && v) answers[k] = v; });
     $$('[data-a]').forEach(i => { const v = i.value.trim(); if (v) answers[i.dataset.a] = v; });
     const same = sameAnswers(answers, start) && !added.length && !pick.removed.length;
-    if (same) { toast('Nothing changed'); location.hash = '#/now'; return; }
+    if (same) { toast('Nothing changed'); goBack('#/now'); return; }
     const progress = $('#progress');
     busy(e.target, async () => {
       const prepared = await prepareAll(added, progress);
@@ -198,7 +198,7 @@ function renderNowForm(key) {
       else await DB.addMoment(data, prepared);
       state.nowTwin = key;
       toast('Saved, and added to the timeline');
-      location.hash = '#/now';
+      goBack('#/now');
     }).finally(() => { progress.hidden = true; });
   };
 }
@@ -338,6 +338,6 @@ function renderNowQuestions() {
     await DB.saveSettings({ nowFields: nowFieldsList });
     state.settings = { ...state.settings, nowFields: nowFieldsList };
     toast('Saved');
-    location.hash = '#/now';
+    goBack('#/now');
   });
 }

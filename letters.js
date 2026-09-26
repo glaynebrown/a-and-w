@@ -105,7 +105,7 @@ const longDate = s => Dates.parse(s).toLocaleDateString(undefined, { month: 'lon
 function renderLetter(id, sub) {
   if (id === 'new' || sub === 'edit') return renderLetterForm(id === 'new' ? null : id);
   const m = momentById(id);
-  if (!m || m.kind !== 'letter') { location.hash = '#/letters'; return; }
+  if (!m || m.kind !== 'letter') { location.replace('#/letters'); return; }
   const name = letterName(m.who[0]);
   const body = m.caption.replace(/^\s*dear\s+[^,\n]*,?\s*/i, '');
   view.innerHTML = `
@@ -121,7 +121,7 @@ function renderLetter(id, sub) {
 
 function renderLetterForm(id) {
   const m = id ? momentById(id) : null;
-  if (id && (!m || m.kind !== 'letter')) { location.hash = '#/letters'; return; }
+  if (id && (!m || m.kind !== 'letter')) { location.replace('#/letters'); return; }
   let to = m ? m.who[0] : null;
   const body = m ? m.caption.replace(/^\s*dear\s+[^,\n]*,?\s*/i, '') : '';
   view.innerHTML = `
@@ -153,16 +153,16 @@ function renderLetterForm(id) {
       if (m) {
         await DB.updateMoment(m, { caption: text, date, who: [to] }, [], []);
         toast('Saved');
-        location.hash = `#/letter/${m.id}`;
+        goBack(`#/letter/${m.id}`);
       } else {
         await DB.addMoment({ kind: 'letter', who: [to], date, caption: text }, []);
         await sealFlourish(to);
-        location.hash = '#/letters';
+        goBack('#/letters');
       }
     }, m ? 'Saving…' : 'Sealing…');
   };
   if (m) $('#del').onclick = () => confirmBox('Delete this letter?', 'This can’t be undone.', 'Delete',
-    async () => { await DB.deleteMoment(m); toast('Deleted'); location.hash = '#/letters'; });
+    async () => { await DB.deleteMoment(m); toast('Deleted'); goBack('#/letters', 2); });
 }
 
 // The envelope folds shut and the wax seal presses on. Skipped if the phone asks for less motion.
