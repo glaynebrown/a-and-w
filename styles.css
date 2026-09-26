@@ -526,3 +526,5 @@ button.web-card:disabled { opacity: .6; }
   display: flex; flex-direction: column; align-items: center; gap: 6px; margin: 34px 0 4px;
   font-family: var(--serif); font-style: italic; font-size: 19px;
 }
+.web-photo { display: flex; gap: 12px; align-items: center; margin-bottom: 8px; }
+.web-photo img { width: 96px; height: 96px; object-fit: cover; border-radius: 12px; background: var(--surface-2); }

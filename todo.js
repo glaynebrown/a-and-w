@@ -129,6 +129,12 @@ function safeUrl(u) {
   try { const x = new URL(u); return /^https?:$/.test(x.protocol) ? x.href : ''; } catch { return ''; }
 }
 
+// ['a', 'b', 'c'] -> "a, b and c"
+function listText(items) {
+  const xs = items.filter(Boolean);
+  return xs.length > 1 ? `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}` : xs.join('');
+}
+
 // ---------- Google results (Phase 3) ----------
 // Searches run in the "nearby" server function. Results are kept on this
 // phone for 3 days so repeating a search doesn't use up the monthly allowance.
@@ -607,16 +613,19 @@ function renderIdeaForm(id) {
     <h1 style="font-size:26px;margin-bottom:6px">${i ? 'Edit idea' : 'Save idea'}</h1>
     <p class="muted small">Only the name is needed. Fill in the rest now, later, or never.</p>
 
+    <label class="field"><span class="field-label">Link</span>
+      <input type="text" id="link" inputmode="url" value="${esc(v.link || '')}" placeholder="Paste a Google Maps, TikTok, or website link" autocomplete="off"></label>
+    <p class="hint" id="link-hint">A Google Maps link fills in the rest for you.</p>
+
     <label class="field"><span class="field-label">Name or idea</span>
       <input type="text" id="title" value="${esc(v.title || '')}" placeholder="Sensory bin with rice" autocomplete="off"></label>
 
     <p class="field-label" style="margin-top:18px">Kind of thing</p>
     ${opt('category', CATEGORIES, v.category)}
 
-    <label class="field"><span class="field-label">Link</span>
-      <input type="text" id="link" inputmode="url" value="${esc(v.link || '')}" placeholder="Paste a TikTok or website link" autocomplete="off"></label>
-
-    <div class="field" style="margin-top:18px"><span class="field-label">Photo or screenshot</span><div class="picker" id="picker"></div></div>
+    <div class="field" style="margin-top:18px"><span class="field-label">Photo or screenshot</span>
+      <div class="web-photo" id="web-photo" hidden></div>
+      <div class="picker" id="picker"></div></div>
 
     <div id="place-fields">
       <label class="field"><span class="field-label">Address or town</span>
@@ -654,6 +663,62 @@ function renderIdeaForm(id) {
   placeFields();
   const pick = mountPicker($('#picker'), keep, added);
 
+  // ----- Google Maps link: fill in what's still blank -----
+  const web = { placeId: v.placeId || '', photo: v.webPhoto || '' };
+  const setChip = (group, value) => {
+    picked[group] = value;
+    $$(`[data-group="${group}"] .chip`).forEach(x => x.setAttribute('aria-pressed', x.dataset.v === value));
+    if (group === 'category') placeFields();
+  };
+  const drawWebPhoto = () => {
+    const el = $('#web-photo');
+    el.hidden = !web.photo;
+    el.innerHTML = web.photo ? `<img src="${esc(web.photo)}" alt="" onerror="this.remove()">
+      <div><p class="small">Photo from Google</p><button type="button" class="link-btn" id="web-photo-x">Don’t use it</button></div>` : '';
+    const x = $('#web-photo-x');
+    if (x) x.onclick = () => { web.photo = ''; drawWebPhoto(); };
+  };
+  drawWebPhoto();
+  const PRICE = { PRICE_LEVEL_FREE: 'free', PRICE_LEVEL_INEXPENSIVE: 'under20', PRICE_LEVEL_MODERATE: 'under50', PRICE_LEVEL_EXPENSIVE: 'more', PRICE_LEVEL_VERY_EXPENSIVE: 'more' };
+  const isMapsLink = u => /^https?:\/\/(maps\.app\.goo\.gl|goo\.gl\/maps|maps\.google\.|(www\.)?google\.[a-z.]+\/maps)/i.test(u);
+  let lastLooked = '';
+  async function lookUpLink() {
+    const input = $('#link'), hint = $('#link-hint');
+    // The Maps app's "Copy link" can include the place name first; keep just the link.
+    const found = (input.value.match(/https?:\/\/\S+/) || [])[0] || '';
+    if (found && found !== input.value.trim()) input.value = found;
+    if (!found || !isMapsLink(found) || found === lastLooked) return;
+    lastLooked = found;
+    hint.textContent = 'Looking it up on Google Maps…';
+    try {
+      const home = state.settings.home || {};
+      const res = await DB.fromLink(found, home);
+      const r = res.place;
+      if (res.home && home.label && !(Number.isFinite(home.lat) && Number.isFinite(home.lng))) {
+        const withPoint = { ...home, lat: res.home.lat, lng: res.home.lng };
+        state.settings = { ...state.settings, home: withPoint };
+        DB.saveSettings({ home: withPoint }).catch(console.error);
+      }
+      const filled = [];
+      if (!$('#title').value.trim()) { $('#title').value = r.name; filled.push('name'); }
+      if (!picked.category && guessCategory(r)) { setChip('category', guessCategory(r)); filled.push('kind'); }
+      if (!$('#address').value.trim() && r.address) { $('#address').value = r.address.replace(/, USA$/, ''); filled.push('address'); }
+      if (!$('#drive').value.trim() && r.drive != null) { $('#drive').value = r.drive; filled.push('drive time'); }
+      if (!picked.cost && PRICE[r.priceLevel]) { setChip('cost', PRICE[r.priceLevel]); filled.push('cost'); }
+      if (r.photo && !keep.length && !added.length) { web.photo = r.photo; drawWebPhoto(); filled.push('photo'); }
+      web.placeId = r.placeId;
+      hint.textContent = filled.length ? `Filled in from Google Maps: ${listText(filled)}.` : 'Found it on Google Maps. Everything was already filled in.';
+    } catch (e) {
+      console.error(e);
+      lastLooked = '';
+      hint.textContent = /cid=/.test(found)
+        ? 'That kind of link can’t be read. In the Google Maps app, use Share → Copy link.'
+        : friendlyError(e);
+    }
+  }
+  $('#link').addEventListener('change', lookUpLink);
+  $('#link').addEventListener('paste', () => setTimeout(lookUpLink, 50));
+
   $('#save').onclick = e => {
     const err = $('#err');
     const title = $('#title').value.trim();
@@ -667,6 +732,7 @@ function renderIdeaForm(id) {
       title, category: picked.category, cost: picked.cost, setting: picked.setting, length: picked.length,
       link: $('#link').value.trim(), notes: $('#notes').value.trim(),
       address: home ? '' : $('#address').value.trim(), drive: home ? 0 : drive,
+      placeId: web.placeId, webPhoto: web.photo,
     };
     const progress = $('#progress');
     busy(e.target, async () => {

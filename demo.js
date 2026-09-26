@@ -161,6 +161,13 @@ const DemoStore = (() => {
         })),
       };
     },
+    async fromLink(url) {
+      await wait(500);
+      return { home: { lat: 38.42, lng: -77.41 }, place: {
+        placeId: 'demo-link', name: 'Riverfront Park', address: '715 Sophia St, Fredericksburg, VA 22401, USA',
+        rating: 4.5, ratings: 348, type: 'park', typeLabel: 'Park', types: ['park'], mapsUrl: url, website: '',
+        priceLevel: 'PRICE_LEVEL_FREE', photo: samplePhoto(300).url, drive: 17 } };
+    },
     async patchIdea(id, patch) {
       ideas = ideas.map(x => x.id === id ? { ...x, ...patch } : x);
       notifyIdeas();

@@ -159,6 +159,13 @@ const Store = (() => {
       return (await call({ query, home })).data;
     },
 
+    // A pasted Google Maps link -> that place's details (the "fromLink" server function).
+    async fromLink(url, home) {
+      needOnline('Looking up a link');
+      const call = firebase.app().functions('us-east1').httpsCallable('fromLink');
+      return (await call({ url, home })).data;
+    },
+
     // Small changes: visits, ratings, "not for now".
     patchIdea: (id, patch) => write(ideas().doc(id).update({ ...patch, updatedAt: ts() })),
 
