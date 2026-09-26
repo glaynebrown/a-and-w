@@ -7,7 +7,7 @@
      so the timeline scrolls fast and works with no signal. Cleared on sign-out.
    - Everything else (database, login) goes straight to the network.
      Firestore keeps its own offline copy of the timeline. */
-const APP_CACHE = 'aw-app-v7';
+const APP_CACHE = 'aw-app-v8';
 const PHOTO_CACHE = 'aw-photos-v1';
 const APP_FILES = [
   './', 'index.html', 'styles.css', 'app.js', 'store.js', 'demo.js', 'dates.js', 'photos.js', 'todo.js', 'books.js', 'now.js', 'words.js', 'letters.js',
@@ -31,10 +31,19 @@ self.addEventListener('activate', event => {
       .then(() => self.clients.claim()));
 });
 
+// On a weak signal, don't wait forever for the network: after 3 seconds the
+// saved copy is used (airplane mode fails right away anyway).
+function fetchWithin(request, ms) {
+  return Promise.race([
+    fetch(request),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('slow network')), ms)),
+  ]);
+}
+
 async function networkFirst(request, key = request) {
   const cache = await caches.open(APP_CACHE);
   try {
-    const response = await fetch(request);
+    const response = await fetchWithin(request, 3000);
     if (response.ok) cache.put(key, response.clone());
     return response;
   } catch (err) {

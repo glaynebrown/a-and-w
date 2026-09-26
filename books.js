@@ -259,7 +259,7 @@ async function makeBook(pick, progress) {
   if (coverMoment) {
     try {
       const p = coverMoment.photos[0];
-      const ph = await photoForPdf(p.url, 380, 330, pxPerPt, false);
+      const ph = await photoForPdf(p.video ? (p.poster || p.thumbUrl) : p.url, 380, 330, pxPerPt, false);
       doc.addImage(ph.data, 'JPEG', (S - 380) / 2, 160, 380, 330);
     } catch (e) { console.warn('Cover photo skipped', e); }
   }
@@ -398,7 +398,7 @@ async function makeBook(pick, progress) {
         photoN++;
         progress(`Adding photo ${photoN} of ${totalPhotos}…`);
         try {
-          const ph = await photoForPdf(b.p.url, b.w, b.h, pxPerPt, b.fit);
+          const ph = await photoForPdf(b.p.video ? (b.p.poster || b.p.thumbUrl) : b.p.url, b.w, b.h, pxPerPt, b.fit);
           doc.addImage(ph.data, 'JPEG', b.x, y + b.y, b.w, b.h);
         } catch (e) {
           console.warn('Photo skipped', e);
@@ -492,7 +492,7 @@ async function makeBackup(withPhotos, progress) {
 
   if (withPhotos) {
     const jobs = [
-      ...state.moments.flatMap(m => (m.photos || []).map((p, n) => ({ url: p.url, path: `photos/${m.date}_${fileSafe(m.caption || m.kind) || 'moment'}_${m.id.slice(0, 5)}-${n + 1}.jpg` }))),
+      ...state.moments.flatMap(m => (m.photos || []).map((p, n) => ({ url: p.url, path: `photos/${m.date}_${fileSafe(m.caption || m.kind) || 'moment'}_${m.id.slice(0, 5)}-${n + 1}.${p.video ? 'mp4' : 'jpg'}` }))),
       ...state.ideas.flatMap(i => (i.photos || []).map((p, n) => ({ url: p.url, path: `ideas/${fileSafe(i.title) || 'idea'}_${i.id.slice(0, 5)}-${n + 1}.jpg` }))),
     ];
     let failed = 0;

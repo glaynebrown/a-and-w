@@ -417,7 +417,10 @@ function photoGrid(m) {
   // full-size copy so they're sharp; small grid tiles use the preview.
   const big = i => shown.length <= 2 || (shown.length === 3 && i === 0);
   const cells = shown.map((p, i) => {
-    const img = `<img src="${esc(big(i) ? p.url : (p.thumbUrl || p.url))}" alt="" loading="lazy" decoding="async">`;
+    const src = p.video ? (p.poster || p.thumbUrl) : big(i) ? p.url : (p.thumbUrl || p.url);
+    const img = p.video
+      ? `<div class="cell">${`<img src="${esc(src)}" alt="" loading="lazy" decoding="async">`}<span class="play-badge" aria-label="Video">▶</span></div>`
+      : `<img src="${esc(src)}" alt="" loading="lazy" decoding="async">`;
     return i === shown.length - 1 && extra > 0 ? `<div class="cell">${img}<div class="more">+${extra}</div></div>` : img;
   }).join('');
   return `<div class="grid ${cls}">${cells}</div>`;
@@ -497,7 +500,7 @@ function renderHome() {
     ${start}
     ${otd}
     ${recent.length ? `<p class="section-label">Recent</p><div class="recent">${recent.map(m =>
-      `<a href="#/moment/${esc(m.id)}"><img src="${esc(m.photos[0].thumbUrl || m.photos[0].url)}" alt="${esc(m.caption || Dates.short(m.date))}" loading="lazy"></a>`).join('')}</div>` : ''}
+      `<a href="#/moment/${esc(m.id)}"><img src="${esc(m.photos[0].video ? (m.photos[0].poster || m.photos[0].thumbUrl) : (m.photos[0].thumbUrl || m.photos[0].url))}" alt="${esc(m.caption || Dates.short(m.date))}" loading="lazy"></a>`).join('')}</div>` : ''}
   `;
 }
 
@@ -582,8 +585,11 @@ function renderMoment(id) {
     ${m.kind === 'growth' ? `<div style="margin-bottom:14px">${growthLines(m)}<a class="text-link" href="#/growth">See growth chart</a></div>` : ''}
     ${m.kind === 'snapshot' ? `<dl class="answers" style="margin-bottom:16px">${orderedAnswers(m.answers).map(([k, v]) =>
       `<div><dt>${esc(fieldLabel(k))}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>` : ''}
-    <div class="full-photos">${(m.photos || []).map(p =>
-      `<a href="${esc(p.url)}" target="_blank" rel="noopener"><img src="${esc(p.url)}" alt="" loading="lazy" decoding="async"
+    <div class="full-photos">${(m.photos || []).map(p => p.video
+      // A video (only the Facebook import has one): plays right here. thumbUrl is its still frame.
+      ? `<video src="${esc(p.url)}" poster="${esc(p.thumbUrl || '')}" controls playsinline preload="none"
+          style="aspect-ratio:${p.w || 16}/${p.h || 9}"></video>`
+      : `<a href="${esc(p.url)}" target="_blank" rel="noopener"><img src="${esc(p.url)}" alt="" loading="lazy" decoding="async"
         style="aspect-ratio:${p.w || 4}/${p.h || 3}"></a>`).join('')}</div>
     <div class="actions">
       <a class="btn" href="#/moment/${esc(m.id)}/edit">Edit</a>
