@@ -13,7 +13,7 @@ function renderLetters() {
     <a class="write-letter" href="#/letter/new">${DIVIDER}<span>Write a letter</span>${QUILL}</a>
     ${all.length ? `<div class="envelopes">${all.map(l => `<a class="env-link" href="#/letter/${esc(l.id)}">
       ${envelope(l.who[0])}<span class="env-name">${esc(letterName(l.who[0]))}</span><span class="env-date">${esc(Dates.short(l.date))}, ${l.date.slice(0, 4)}</span></a>`).join('')}</div>`
-      : `<p class="muted small" style="text-align:center;margin-top:4px">Birthdays are a nice time for one.</p>`}
+      : ''}
     ${ENVELOPE_DEFS}`;
 }
 
