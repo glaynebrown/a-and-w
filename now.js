@@ -222,7 +222,11 @@ function cropFor(key, photo) {
   return c && c.src === photoId(photo) ? c : { x: 50, y: 50, zoom: 1 };
 }
 const cropStyle = c => `object-position:${c.x}% ${c.y}%;transform:scale(${c.zoom});transform-origin:${c.x}% ${c.y}%`;
-const circleImg = (key, photo) => `<img src="${esc(photo.thumbUrl || photo.url)}" alt="" style="${cropStyle(cropFor(key, photo))}">`;
+// The preview copy is sharp enough for the small circle unless it's zoomed in.
+const circleImg = (key, photo) => {
+  const c = cropFor(key, photo);
+  return `<img src="${esc(c.zoom > 1.4 ? photo.url : (photo.thumbUrl || photo.url))}" alt="" style="${cropStyle(c)}">`;
+};
 
 function openCrop(key) {
   const photo = currentPhoto(key);

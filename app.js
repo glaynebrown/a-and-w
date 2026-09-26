@@ -299,8 +299,11 @@ function photoGrid(m) {
   const shown = ph.slice(0, ph.length === 3 ? 3 : Math.min(ph.length, 4));
   const cls = ['', 'g1', 'g2', 'g3', 'g4'][shown.length];
   const extra = ph.length - shown.length;
+  // Big tiles (one photo, two side by side, the large first of three) use the
+  // full-size copy so they're sharp; small grid tiles use the preview.
+  const big = i => shown.length <= 2 || (shown.length === 3 && i === 0);
   const cells = shown.map((p, i) => {
-    const img = `<img src="${esc(p.thumbUrl || p.url)}" alt="" loading="lazy" decoding="async">`;
+    const img = `<img src="${esc(big(i) ? p.url : (p.thumbUrl || p.url))}" alt="" loading="lazy" decoding="async">`;
     return i === shown.length - 1 && extra > 0 ? `<div class="cell">${img}<div class="more">+${extra}</div></div>` : img;
   }).join('');
   return `<div class="grid ${cls}">${cells}</div>`;
