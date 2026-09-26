@@ -546,3 +546,7 @@ button.web-card:disabled { opacity: .6; }
 .first-toggle[aria-pressed="true"] { background: #f6ecd6; border-color: var(--gold); color: #7a5c1e; }
 :root[data-theme="dark"] .first-toggle[aria-pressed="true"] { background: #3a321f; color: var(--gold); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .first-toggle[aria-pressed="true"] { background: #3a321f; color: var(--gold); } }
+.dot-hit { fill: transparent; cursor: pointer; }
+.dot { transition: r .15s; }
+.dot.on { r: 6; stroke: var(--surface); stroke-width: 2; }
+.dot-tip { margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); }

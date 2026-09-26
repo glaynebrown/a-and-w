@@ -154,8 +154,10 @@ function lineChart(measure, label, unit) {
         <text x="${L - 6}" y="${Y(v).toFixed(1)}" text-anchor="end" dominant-baseline="middle" class="axis">${Math.round(v * 10) / 10}</text>`).join('')}
       ${xTicks.map(v => `<text x="${X(v).toFixed(1)}" y="${H - 8}" text-anchor="middle" class="axis">${v}${v === xTicks[xTicks.length - 1] ? ' mo' : ''}</text>`).join('')}
       ${series.map(s => `<polyline points="${s.pts.map(p => `${X(p.x).toFixed(1)},${Y(p.y).toFixed(1)}`).join(' ')}" style="fill:none;stroke:${color(s.t.key)};stroke-width:2"/>
-        ${s.pts.map(p => `<circle cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="3.5" style="fill:${color(s.t.key)}"><title>${esc(s.t.name)}: ${p.y} ${unit}, ${esc(Dates.pretty(p.m.date))}</title></circle>`).join('')}`).join('')}
+        ${s.pts.map(p => `<circle cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="3.5" class="dot" data-dot="${esc(p.m.id)}" style="fill:${color(s.t.key)}"><title>${esc(s.t.name)}: ${p.y} ${unit}, ${esc(Dates.pretty(p.m.date))}</title></circle>`).join('')}`).join('')}
+      ${series.flatMap(s => s.pts).map(p => `<circle cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="11" class="dot-hit" data-hit="${esc(p.m.id)}"/>`).join('')}
     </svg>
+    <div class="dot-tip" hidden></div>
     <div class="legend">${series.map(s => `<span><i style="background:${color(s.t.key)}"></i>${esc(s.t.name)}</span>`).join('')}</div>
   </section>`;
 }
@@ -172,6 +174,22 @@ function renderGrowth() {
       <div class="moment-meta"><span>${esc(Dates.pretty(m.date))}</span><span class="date">${esc(ageOn(m.date, true))}</span></div>
       ${m.caption ? `<p class="caption small">${esc(m.caption)}</p>` : ''}${growthLines(m)}</a>`).join('')}` : ''}`;
   $('#back').onclick = e => { e.preventDefault(); goBack('#/timeline'); };
+
+  // Tap a dot: that checkup's numbers for both twins, with a link to the full card.
+  $$('.chart-card').forEach(card => card.addEventListener('click', e => {
+    const hit = e.target.closest('[data-hit]');
+    if (!hit) return;
+    const m = momentById(hit.dataset.hit);
+    if (!m) return;
+    $$('.dot-tip').forEach(t => { t.hidden = true; });
+    $$('.dot.on').forEach(d => d.classList.remove('on'));
+    $$(`.dot[data-dot="${CSS.escape(m.id)}"]`, card).forEach(d => d.classList.add('on'));
+    const tip = $('.dot-tip', card);
+    tip.innerHTML = `<div class="moment-meta"><strong style="font-weight:500">${esc(Dates.pretty(m.date))}</strong><span class="date">${esc(ageOn(m.date))}</span></div>
+      ${m.caption ? `<p class="caption small">${esc(m.caption)}</p>` : ''}${growthLines(m)}
+      <a class="text-link" style="margin:8px 0 0" href="#/moment/${esc(m.id)}">Open checkup ›</a>`;
+    tip.hidden = false;
+  }));
 }
 
 // ---------- the PDF ----------
