@@ -453,3 +453,21 @@ input:focus, textarea:focus, .btn:focus-visible, .chip:focus-visible { outline: 
 @keyframes seal-press { from { opacity: 0; transform: scale(1.6); } to { opacity: 1; transform: scale(1); } }
 @keyframes fade-in { to { opacity: 1; } }
 .write-letter .quill { margin-top: 2px; }
+
+/* ---------- circle crop, question reordering ---------- */
+.now-photo-btn { position: relative; flex: none; padding: 0; border: 0; background: none; cursor: pointer; }
+.crop-badge {
+  position: absolute; right: -2px; bottom: 2px; width: 26px; height: 26px; border-radius: 50%;
+  background: var(--surface); border: 1px solid var(--border); display: grid; place-items: center; color: var(--muted);
+}
+.crop-badge .icon { width: 14px; height: 14px; }
+.crop-circle {
+  width: 220px; height: 220px; margin: 16px auto 12px; border-radius: 50%; overflow: hidden;
+  background: var(--sand-bg); touch-action: none; cursor: grab; box-shadow: 0 0 0 4px var(--surface), 0 0 0 5px var(--border);
+}
+.crop-circle img { width: 100%; height: 100%; object-fit: cover; user-select: none; -webkit-user-drag: none; pointer-events: none; }
+.crop-zoom { display: flex; align-items: center; gap: 10px; }
+.crop-zoom input { flex: 1; accent-color: var(--sage-ink); }
+.nf-row { transition: transform .15s; background: var(--bg); }
+.nf-row.dragging { transition: none; position: relative; z-index: 2; box-shadow: 0 4px 14px rgba(60, 50, 30, .15); border-radius: 12px; }
+.grip { display: grid; place-items: center; width: 28px; height: 40px; flex: none; color: var(--muted); touch-action: none; cursor: grab; }

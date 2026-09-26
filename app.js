@@ -102,6 +102,8 @@ const ICON = {
   x: svg('<path d="M6 6l12 12M18 6 6 18"/>'),
   plus: svg('<path d="M12 5v14M5 12h14"/>'),
   photos: svg('<rect x="3" y="5" width="14" height="14" rx="2"/><path d="M7 3h12a2 2 0 0 1 2 2v12"/><path d="m3 15 4-4 4 4 2-2 4 4"/>'),
+  crop: svg('<path d="M7 3v14h14M3 7h14v14"/>'),
+  grip: svg('<circle cx="9" cy="6" r=".6"/><circle cx="15" cy="6" r=".6"/><circle cx="9" cy="12" r=".6"/><circle cx="15" cy="12" r=".6"/><circle cx="9" cy="18" r=".6"/><circle cx="15" cy="18" r=".6"/>'),
   chevron: svg('<path d="m6 9 6 6 6-6"/>'),
   chat: svg('<path d="M5 18.5V6.5A2.5 2.5 0 0 1 7.5 4h9A2.5 2.5 0 0 1 19 6.5v7a2.5 2.5 0 0 1-2.5 2.5H9z"/>'),
   chevronRight: svg('<path d="m9 6 6 6-6 6"/>'),
@@ -444,7 +446,7 @@ function renderMoment(id) {
     ${m.ideaId && ideaById(m.ideaId) ? `<a class="text-link" style="margin:6px 0 0" href="#/idea/${esc(m.ideaId)}">${ICON.pin.replace('class="icon"', 'class="icon" style="width:16px;height:16px;vertical-align:-3px"')} ${esc(ideaById(m.ideaId).title)}</a>` : ''}
     <p class="muted small" style="margin:4px 0 14px">${esc([m.caption || m.kind === 'growth' || m.kind === 'snapshot' ? Dates.pretty(m.date) : '', ages, m.kind === 'quote' ? whoText(m.who) : ''].filter(Boolean).join(' · '))}</p>
     ${m.kind === 'growth' ? `<div style="margin-bottom:14px">${growthLines(m)}<a class="text-link" href="#/growth">See growth chart</a></div>` : ''}
-    ${m.kind === 'snapshot' ? `<dl class="answers" style="margin-bottom:16px">${Object.entries(m.answers || {}).map(([k, v]) =>
+    ${m.kind === 'snapshot' ? `<dl class="answers" style="margin-bottom:16px">${orderedAnswers(m.answers).map(([k, v]) =>
       `<div><dt>${esc(fieldLabel(k))}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>` : ''}
     <div class="full-photos">${(m.photos || []).map(p =>
       `<a href="${esc(p.url)}" target="_blank" rel="noopener"><img src="${esc(p.url)}" alt="" loading="lazy" decoding="async"

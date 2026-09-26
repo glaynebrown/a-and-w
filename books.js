@@ -339,7 +339,7 @@ async function makeBook(pick, progress) {
       if (pick.who === 'both') lines.push(`- ${pdfText(whoText(m.who))}`);
     } else if (m.kind === 'snapshot') {
       doc.setFont('times', 'normal'); doc.setFontSize(13);
-      lines = [pdfText(`All about ${whoText(m.who)} at ${ageOn(m.date)}`), ...Object.entries(m.answers || {})
+      lines = [pdfText(`All about ${whoText(m.who)} at ${ageOn(m.date)}`), ...orderedAnswers(m.answers)
         .flatMap(([k, v]) => doc.splitTextToSize(pdfText(`${fieldLabel(k)}: ${v}`), W))];
     } else {
       const parts = [m.caption];
