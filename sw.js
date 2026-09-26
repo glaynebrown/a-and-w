@@ -7,7 +7,7 @@
      so the timeline scrolls fast and works with no signal. Cleared on sign-out.
    - Everything else (database, login) goes straight to the network.
      Firestore keeps its own offline copy of the timeline. */
-const APP_CACHE = 'aw-app-v10';
+const APP_CACHE = 'aw-app-v11';
 const PHOTO_CACHE = 'aw-photos-v2'; // v1 could hold failed downloads; it's cleared on update
 const APP_FILES = [
   './', 'index.html', 'styles.css', 'app.js', 'store.js', 'demo.js', 'dates.js', 'photos.js', 'todo.js', 'books.js', 'now.js', 'words.js', 'letters.js', 'seasons.js',
@@ -88,7 +88,9 @@ self.addEventListener('fetch', event => {
     event.respondWith(request.mode === 'navigate' ? networkFirst(request, HOME) : networkFirst(request));
   } else if (url.hostname === 'www.gstatic.com' && url.pathname.startsWith('/firebasejs/')) {
     event.respondWith(cacheFirst(request, APP_CACHE));
-  } else if (url.hostname === 'firebasestorage.googleapis.com') {
+  } else if (url.hostname === 'firebasestorage.googleapis.com' && url.searchParams.get('alt') === 'media') {
+    // Only photo downloads (links with alt=media). Uploads and the app's own
+    // Storage requests carry your sign-in and must go straight through.
     event.respondWith(photo(request));
   }
 });
