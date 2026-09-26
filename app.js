@@ -477,7 +477,7 @@ function renderHome() {
   const md = t.slice(5);
   const shown = state.moments.filter(isOnTimeline);
   const onThisDay = shown.filter(m => m.date.slice(5) === md && m.date < t && m.kind !== 'growth');
-  const recent = shown.filter(m => (m.photos || []).length).slice(0, 6);
+  const tiles = homePhotos(shown);
 
   const otd = onThisDay.map(m => {
     const n = Dates.yearsAgo(m.date, t);
@@ -503,9 +503,24 @@ function renderHome() {
     <a class="card wheel-card" href="#/todo">${WHEEL}<div><h2>What should we do today?</h2><p>Spin the wheel · Suggestions</p></div></a>
     ${start}
     ${otd}
-    ${recent.length ? `<p class="section-label">Recent</p><div class="recent">${recent.map(m =>
-      `<a href="#/moment/${esc(m.id)}"><img src="${esc(m.photos[0].video ? (m.photos[0].poster || m.photos[0].thumbUrl) : (m.photos[0].thumbUrl || m.photos[0].url))}" alt="${esc(m.caption || Dates.short(m.date))}" loading="lazy"></a>`).join('')}</div>` : ''}
+    ${tiles.length ? `<div class="recent" style="margin-top:16px">${tiles.map(({ m, p }) =>
+      `<a href="#/moment/${esc(m.id)}"><img src="${esc(p.thumbUrl || p.url)}" alt="${esc(m.caption || Dates.short(m.date))}" loading="lazy"></a>`).join('')}</div>` : ''}
   `;
+}
+
+// Home's photo grid: the 3 newest photos plus 6 random ones from any time,
+// in shuffled spots. Picked once per app launch (so it doesn't jump around),
+// and again whenever a new photo is added.
+function homePhotos(moments) {
+  const all = moments.flatMap(m => (m.photos || []).map(p => ({ m, p })));
+  const newest = all.length ? all[0].p.path : '';
+  if (state.homeTiles && state.homeTiles.newest === newest && state.homeTiles.count === all.length) return state.homeTiles.tiles;
+  const shuffle = a => { for (let n = a.length - 1; n > 0; n--) { const k = Math.floor(Math.random() * (n + 1)); [a[n], a[k]] = [a[k], a[n]]; } return a; };
+  const recent = all.slice(0, 3);
+  const rest = shuffle(all.slice(3)).slice(0, 9 - recent.length);
+  const tiles = shuffle([...recent, ...rest]);
+  state.homeTiles = { newest, count: all.length, tiles };
+  return tiles;
 }
 
 // ---------- timeline ----------
