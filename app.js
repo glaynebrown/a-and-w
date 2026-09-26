@@ -516,7 +516,7 @@ function renderHome() {
   bindSeasonBanners(view);
 }
 
-// Home's photo grid: the 3 newest photos plus 6 others from any time, in
+// Home's photo grid (2 rows): the 3 newest photos plus 3 others from any time, in
 // mixed-up spots. The mix changes once a day (it's worked out from today's
 // date), so it's the same all day. A new photo joins as one of the newest
 // without reshuffling the rest.
@@ -530,7 +530,7 @@ function homePhotos(moments) {
     return h >>> 0;
   };
   const recent = all.slice(0, 3);
-  const rest = all.slice(3).sort((a, b) => rank(a) - rank(b)).slice(0, 9 - recent.length);
+  const rest = all.slice(3).sort((a, b) => rank(a) - rank(b)).slice(0, 6 - recent.length);
   return [...recent, ...rest].sort((a, b) => rank(a) - rank(b));
 }
 
