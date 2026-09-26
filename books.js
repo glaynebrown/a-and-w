@@ -301,7 +301,8 @@ async function makeBook(pick, progress) {
     doc.text(pdfText(Dates.monthLabel(k) + (cont ? ' (continued)' : '')), M, y + (cont ? 12 : 22));
     if (!cont) {
       font('helvetica', 'normal', 10); color(C.muted);
-      doc.text(pdfText(ageOn(ms[ms.length - 1].date)), S - M, y + 22, { align: 'right' });
+      const last = ms[ms.length - 1].date;
+      doc.text(pdfText(beforeBirth(last) ? ageOn(last, true).replace(' wks', ' weeks') : ageOn(last)), S - M, y + 22, { align: 'right' });
     }
     y += cont ? 22 : 34;
     doc.setDrawColor(...C.line); doc.setLineWidth(0.8); doc.line(M, y, S - M, y);
@@ -358,9 +359,22 @@ async function makeBook(pick, progress) {
   const HEADER_H = 52;
 
   // A month starts on the current page only if its title and first entry both fit.
-  let firstMonth = true;
+  let firstMonth = true, chapter = null;
+  const chapterPage = title => {
+    newPage();
+    font('times', 'italic', 28); color(C.text);
+    doc.text(pdfText(title), S / 2, S / 2, { align: 'center' });
+  };
   for (const [k, ms] of months) {
     const first = layout(ms[0]);
+    // Pregnancy posts get their own chapter, then the story starts again at birth.
+    const now = beforeBirth(ms[0].date) ? 'before' : 'after';
+    if (now !== chapter) {
+      if (now === 'before') chapterPage('Before you were born');
+      else if (chapter === 'before') chapterPage(twin ? `Hello, ${twin.name}` : 'Hello, world');
+      if (chapter !== null || now === 'before') firstMonth = true;
+      chapter = now;
+    }
     if (firstMonth || y + 14 + HEADER_H + first.h > BOTTOM) newPage(); else y += 14;
     firstMonth = false;
     monthHeader(k, ms);

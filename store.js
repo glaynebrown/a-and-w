@@ -21,6 +21,7 @@ const DEFAULT_SETTINGS = {
     { key: 'millie', name: 'Millie', fullName: 'Amelia' },
   ],
   birthday: '2025-01-25',
+  dueDate: '2025-02-22', // for "32 weeks" on posts from the pregnancy
   home: { label: 'Stafford, VA' },
 };
 

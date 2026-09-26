@@ -234,7 +234,17 @@ function whoText(who = []) {
 }
 const pills = (who = []) => twins().filter(t => who.includes(t.key))
   .map(t => `<span class="pill ${t.key}">${esc(t.name)}</span>`).join('');
-const ageOn = (date, short) => Dates.age(state.settings.birthday, date, short);
+// After birth: "20 months, 1 week". Before birth: weeks of pregnancy, counted
+// from the due date (40 weeks), e.g. "32 weeks pregnant" / "32 wk".
+function ageOn(date, short) {
+  const s = state.settings;
+  if (!Dates.valid(date) || !Dates.valid(s.birthday) || date >= s.birthday) return Dates.age(s.birthday, date, short);
+  if (!Dates.valid(s.dueDate)) return short ? 'before birth' : 'Before you were born';
+  const weeks = Math.floor(40 - (Dates.parse(s.dueDate) - Dates.parse(date)) / (7 * 86400000));
+  if (weeks < 1) return short ? 'before birth' : 'Before you were born';
+  return short ? `${weeks} wks` : `${weeks} weeks pregnant`;
+}
+const beforeBirth = date => Dates.valid(state.settings.birthday) && date < state.settings.birthday;
 
 // ---------- routing ----------
 const TAB_ROUTES = ['timeline', 'now', '', 'todo', 'letters'];
@@ -464,7 +474,8 @@ function renderHome() {
 
   const otd = onThisDay.map(m => {
     const n = Dates.yearsAgo(m.date, t);
-    return momentCard(m, n === 1 ? 'One year ago today' : `${n} years ago today`);
+    const when = n === 1 ? 'One year ago today' : `${n} years ago today`;
+    return momentCard(m, beforeBirth(m.date) ? `${when} · Before you were born, ${ageOn(m.date, true)}` : when);
   }).join('');
 
   const start = !state.moments.length ? `<div class="card empty">
@@ -514,9 +525,15 @@ function renderTimeline() {
   const kindChips = KIND_FILTERS.map(([key, text]) =>
     `<button class="chip" data-kind-f="${key}" aria-pressed="${kind === key}">${esc(text)}</button>`).join('');
 
-  const body = [...months].map(([k, ms]) =>
-    `<div class="month"><h2>${esc(Dates.monthLabel(k))}</h2><span>${esc(ageOn(ms[0].date, true))}</span></div>
-     ${ms.map(m => momentCard(m, '', who === 'both' ? null : who)).join('')}`).join('');
+  // Pregnancy months sit under one "Before you were born" heading (newest first,
+  // so it comes right after their birth month).
+  let dividerShown = false;
+  const body = [...months].map(([k, ms]) => {
+    const pre = beforeBirth(ms[0].date);
+    const divider = pre && !dividerShown ? (dividerShown = true, `<div class="born-divider">${DIVIDER}<span>Before you were born</span></div>`) : '';
+    return `${divider}<div class="month"><h2>${esc(Dates.monthLabel(k))}</h2><span>${esc(ageOn(ms[0].date, true))}</span></div>
+     ${ms.map(m => momentCard(m, '', who === 'both' ? null : who)).join('')}`;
+  }).join('');
 
   const empty = state.moments.length
     ? `<div class="card empty"><p>Nothing here with this filter yet.</p></div>`
@@ -812,6 +829,9 @@ function renderSettings() {
           <input type="text" data-twin="${i}" value="${esc(t.name)}" autocomplete="off"></label>`).join('')}</div>
         <label class="field"><span class="field-label">Birthday</span>
           <input type="date" id="bday" value="${esc(s.birthday)}" max="${Dates.today()}"></label>
+        <label class="field"><span class="field-label">Original due date</span>
+          <input type="date" id="due" value="${esc(s.dueDate || '')}"></label>
+        <p class="hint">Used for “32 weeks” on moments from the pregnancy.</p>
       </section>
 
       <section class="settings-group card">
@@ -865,6 +885,7 @@ function renderSettings() {
       const patch = {
         twins: s.twins.map((t, i) => ({ ...t, name: names[i] })),
         birthday: bday,
+        dueDate: Dates.valid($('#due').value) ? $('#due').value : '',
         // Moving clears the saved map point so drive times are worked out again.
         home: home === (s.home && s.home.label) ? s.home : { label: home },
       };
