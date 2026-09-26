@@ -249,6 +249,7 @@ const beforeBirth = date => Dates.valid(state.settings.birthday) && date < state
 // ---------- routing ----------
 const TAB_ROUTES = ['timeline', 'now', '', 'todo', 'letters'];
 const scrollMemory = {};
+let tabTapped = false;
 let currentHash = null;
 
 function parseHash() {
@@ -276,19 +277,24 @@ function route() {
     journal: () => { location.replace('#/letters'); },
     letter: () => renderLetter(id, sub),
     words: () => renderWords(id),
+    seasons: renderSeasons,
     books: () => renderBooks(id), growth: renderGrowth, settings: renderSettings,
     todo: renderTodo, suggest: renderSuggest, wheel: renderWheel,
     idea: () => (id === 'new' ? renderIdeaForm(null) : sub === 'edit' ? renderIdeaForm(id) : sub === 'went' ? renderWent(id) : renderIdea(id)),
   };
   (screens[page] || renderHome)();
-  // Coming back to a list puts you where you were; anything else starts at the top.
-  window.scrollTo(0, TAB_ROUTES.includes(page) && !id ? (scrollMemory[currentHash] || 0) : 0);
+  // Coming Back to a list puts you where you were. Tapping a tab, or any other
+  // page, starts at the top.
+  const fromTab = tabTapped;
+  tabTapped = false;
+  window.scrollTo(0, TAB_ROUTES.includes(page) && !id && !fromTab ? (scrollMemory[currentHash] || 0) : 0);
+  drawTopButton();
 }
 
 // Re-draw from fresh data, but never while someone is filling in a form.
 function refresh() {
   const [page = '', id, sub] = parseHash();
-  if (['add', 'add-old', 'settings', 'wheel', 'letter', 'books', 'words'].includes(page) || sub === 'edit' || sub === 'went' || id === 'new') return;
+  if (['add', 'add-old', 'settings', 'wheel', 'letter', 'books', 'words', 'seasons'].includes(page) || sub === 'edit' || sub === 'went' || id === 'new') return;
   if (page === 'now' && id === 'questions') return;
   const y = window.scrollY;
   route();
@@ -499,28 +505,33 @@ function renderHome() {
       <a class="big-btn sage" href="#/add">${ICON.camera}Add moment</a>
       <a class="big-btn blush" href="#/idea/new">${ICON.pin}Save idea</a>
     </div>
-    ${state.moments.length ? `<a class="text-link" href="#/add-old">Add old photos</a>` : '<div style="height:12px"></div>'}
+    <div style="height:14px"></div>
     <a class="card wheel-card" href="#/todo">${WHEEL}<div><h2>What should we do today?</h2><p>Spin the wheel · Suggestions</p></div></a>
+    ${seasonBanners('home')}
     ${start}
     ${otd}
     ${tiles.length ? `<div class="recent" style="margin-top:16px">${tiles.map(({ m, p }) =>
       `<a href="#/moment/${esc(m.id)}"><img src="${esc(p.thumbUrl || p.url)}" alt="${esc(m.caption || Dates.short(m.date))}" loading="lazy"></a>`).join('')}</div>` : ''}
   `;
+  bindSeasonBanners(view);
 }
 
-// Home's photo grid: the 3 newest photos plus 6 random ones from any time,
-// in shuffled spots. Picked once per app launch (so it doesn't jump around),
-// and again whenever a new photo is added.
+// Home's photo grid: the 3 newest photos plus 6 others from any time, in
+// mixed-up spots. The mix changes once a day (it's worked out from today's
+// date), so it's the same all day. A new photo joins as one of the newest
+// without reshuffling the rest.
 function homePhotos(moments) {
   const all = moments.flatMap(m => (m.photos || []).map(p => ({ m, p })));
-  const newest = all.length ? all[0].p.path : '';
-  if (state.homeTiles && state.homeTiles.newest === newest && state.homeTiles.count === all.length) return state.homeTiles.tiles;
-  const shuffle = a => { for (let n = a.length - 1; n > 0; n--) { const k = Math.floor(Math.random() * (n + 1)); [a[n], a[k]] = [a[k], a[n]]; } return a; };
+  const day = Dates.today();
+  // Same number for the same photo on the same day; a new day gives a new order.
+  const rank = t => {
+    let h = 2166136261;
+    for (const c of day + (t.p.path || t.p.url)) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
+    return h >>> 0;
+  };
   const recent = all.slice(0, 3);
-  const rest = shuffle(all.slice(3)).slice(0, 9 - recent.length);
-  const tiles = shuffle([...recent, ...rest]);
-  state.homeTiles = { newest, count: all.length, tiles };
-  return tiles;
+  const rest = all.slice(3).sort((a, b) => rank(a) - rank(b)).slice(0, 9 - recent.length);
+  return [...recent, ...rest].sort((a, b) => rank(a) - rank(b));
 }
 
 // ---------- timeline ----------
@@ -655,6 +666,7 @@ function renderForm(id, startKind) {
 
   view.innerHTML = `
     <a class="back" href="${m ? '#/moment/' + esc(m.id) : '#/'}">${ICON.back} Cancel</a>
+    ${m ? '' : addSwitch('new')}
     <h1 style="font-size:26px;margin-bottom:6px">${m ? 'Edit moment' : 'Add moment'}</h1>
     <p class="muted small">Only a photo or a few words are needed. Everything else is optional.</p>
 
@@ -798,12 +810,27 @@ function renderForm(id, startKind) {
   };
 }
 
+// "New moment · Add old photos" switch at the top of both add screens. It swaps
+// the screen in place, so Cancel/Back still returns to where you started.
+function addSwitch(on) {
+  return `<div class="seg add-switch">
+    <a class="chip" href="#/add" aria-pressed="${on === 'new'}" data-swap="#/add">New moment</a>
+    <a class="chip" href="#/add-old" aria-pressed="${on === 'old'}" data-swap="#/add-old">${ICON.photos} Add old photos</a></div>`;
+}
+document.addEventListener('click', e => {
+  const a = e.target.closest && e.target.closest('[data-swap]');
+  if (!a) return;
+  e.preventDefault();
+  if (a.getAttribute('aria-pressed') !== 'true') location.replace(a.dataset.swap);
+});
+
 // ---------- add old photos ----------
 function renderAddOld() {
   let groups = []; // [{ date, files: [] }]
 
   view.innerHTML = `
     <a class="back" href="#/">${ICON.back} Cancel</a>
+    ${addSwitch('old')}
     <h1 style="font-size:26px;margin-bottom:6px">Add old photos</h1>
     <p class="muted small">Pick as many as you like. Photos from the same day become one moment, dated from the photo, so each lands in the right month. Captions can be added later, or never.</p>
 
@@ -952,6 +979,35 @@ function renderSettings() {
     DB.signOut();
   };
 }
+
+// ---------- tabs and "back to top" ----------
+// Tapping a tab starts that page at the top; tapping the tab you're already on
+// scrolls up to the top.
+tabsEl.addEventListener('click', e => {
+  const a = e.target.closest('a[data-tab]');
+  if (!a) return;
+  if ((location.hash || '#/') === a.getAttribute('href') || (a.dataset.tab === '' && ['', '#', '#/'].includes(location.hash))) {
+    e.preventDefault();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } else {
+    tabTapped = true;
+  }
+});
+
+// A small round button that appears once you've scrolled a good way down.
+const topBtn = document.createElement('button');
+topBtn.type = 'button';
+topBtn.className = 'to-top';
+topBtn.setAttribute('aria-label', 'Back to top');
+topBtn.innerHTML = svg('<path d="M12 19V5M6 11l6-6 6 6"/>');
+topBtn.hidden = true;
+topBtn.onclick = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+document.body.appendChild(topBtn);
+function drawTopButton() {
+  topBtn.hidden = window.scrollY < 900;
+  topBtn.classList.toggle('above-tabs', !tabsEl.hidden);
+}
+window.addEventListener('scroll', drawTopButton, { passive: true });
 
 // ---------- start ----------
 window.addEventListener('hashchange', () => {

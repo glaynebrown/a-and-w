@@ -226,7 +226,8 @@ function searchMatches(i, q) {
 
 function renderTodo() {
   view.innerHTML = `
-    <div class="page-head"><h1>Things to do</h1><a class="icon-btn" href="#/idea/new" aria-label="Save idea">${ICON.plus}</a></div>
+    <div class="page-head"><h1>Things to do</h1><div class="head-actions"><a class="icon-btn plain" href="#/seasons" aria-label="Seasonal traditions">${ICON.gear}</a><a class="icon-btn" href="#/idea/new" aria-label="Save idea">${ICON.plus}</a></div></div>
+    ${seasonBanners('todo')}
     <div class="search">${ICON.search}<input type="search" id="q" placeholder="Splash pad, story time, farm…" value="${esc(state.query)}" autocomplete="off" enterkeyhint="search"></div>
     <div class="quick" style="margin-top:12px">
       <a class="big-btn sage" href="#/suggest">${ICON.sliders}Suggestions</a>
@@ -271,6 +272,9 @@ function renderTodo() {
       .catch(e => { console.error(e); toast(friendlyError(e), true); if (go) go.disabled = false; if (status) status.hidden = true; });
   }
   draw();
+  bindSeasonBanners(view);
+  // "Find nearby" from a seasonal banner: search right away.
+  if (state.pendingNearby) { state.pendingNearby = null; findNearby(); }
 
   $('#q').oninput = e => { state.query = e.target.value; draw(); };
   $('#q').onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); findNearby(); } };
@@ -634,6 +638,11 @@ function renderIdeaForm(id) {
         <input type="text" id="drive" inputmode="numeric" value="${esc(v.drive ?? '')}" placeholder="25" autocomplete="off"></label>
     </div>
 
+    <p class="field-label" style="margin-top:18px">Seasonal tradition</p>
+    <div class="chip-wrap" id="seasons">${seasonList().filter(x => !x.off || (v.seasons || []).includes(x.key)).map(x =>
+      `<button type="button" class="chip" data-season="${esc(x.key)}" aria-pressed="${(v.seasons || []).includes(x.key)}">${esc(x.name)}</button>`).join('')}</div>
+    <p class="hint">Pick any that fit, and it shows up in that season’s reminder.</p>
+
     <p class="field-label" style="margin-top:18px">Cost</p>
     ${opt('cost', COSTS, v.cost)}
     <p class="field-label" style="margin-top:18px">Inside or outside</p>
@@ -662,6 +671,7 @@ function renderIdeaForm(id) {
   const placeFields = () => { $('#place-fields').hidden = picked.category === 'home'; };
   placeFields();
   const pick = mountPicker($('#picker'), keep, added);
+  $$('[data-season]').forEach(b => b.onclick = () => b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') !== 'true'));
 
   // ----- Google Maps link: fill in what's still blank -----
   const web = { placeId: v.placeId || '', photo: v.webPhoto || '' };
@@ -733,6 +743,7 @@ function renderIdeaForm(id) {
       link: $('#link').value.trim(), notes: $('#notes').value.trim(),
       address: home ? '' : $('#address').value.trim(), drive: home ? 0 : drive,
       placeId: web.placeId, webPhoto: web.photo,
+      seasons: $$('[data-season]').filter(b => b.getAttribute('aria-pressed') === 'true').map(b => b.dataset.season),
     };
     const progress = $('#progress');
     busy(e.target, async () => {

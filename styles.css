@@ -550,3 +550,62 @@ button.web-card:disabled { opacity: .6; }
 .dot { transition: r .15s; }
 .dot.on { r: 6; stroke: var(--surface); stroke-width: 2; }
 .dot-tip { margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); }
+.to-top {
+  position: fixed; right: 16px; bottom: calc(env(safe-area-inset-bottom) + 24px); z-index: 15;
+  width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface);
+  color: var(--text); display: grid; place-items: center; cursor: pointer; box-shadow: 0 2px 10px rgba(60, 50, 30, .15);
+}
+.to-top.above-tabs { bottom: calc(env(safe-area-inset-bottom) + 78px); }
+
+/* ---------- seasonal traditions ---------- */
+.head-actions { display: flex; gap: 4px; align-items: center; }
+.season-banners { display: grid; gap: 10px; margin-bottom: 16px; }
+.season {
+  position: relative; border-radius: var(--radius); padding: 12px 14px 10px;
+  background: #f6ecd6; border: 1px solid #ead9b3; color: #5e4a1f;
+}
+:root[data-theme="dark"] .season { background: #3a321f; border-color: #54482c; color: #ecdcb2; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .season { background: #3a321f; border-color: #54482c; color: #ecdcb2; } }
+.season.done { padding: 8px 14px; font-size: 13px; opacity: .8; }
+.season-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.season-name { font-family: var(--serif); font-size: 17px; }
+.season-when { font-size: 12px; opacity: .8; white-space: nowrap; }
+.season-links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.season-spot {
+  display: inline-flex; align-items: center; gap: 4px; padding: 5px 10px; border-radius: 999px; font-size: 13px;
+  background: rgba(255, 255, 255, .6); border: 1px solid rgba(160, 130, 60, .25); color: inherit; text-decoration: none; cursor: pointer;
+}
+:root[data-theme="dark"] .season-spot { background: rgba(0, 0, 0, .2); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .season-spot { background: rgba(0, 0, 0, .2); } }
+.season-spot .icon { width: 14px; height: 14px; }
+.season-last { display: block; margin-top: 8px; font-size: 13px; color: inherit; opacity: .85; }
+.season-skip { display: block; margin: 6px 0 0 auto; color: inherit; opacity: .7; }
+.season-row + .season-row { margin-top: 10px; }
+.season-row.off { opacity: .55; }
+.season-row-top { display: flex; gap: 10px; align-items: center; }
+.season-row-top input[type="text"] { flex: 1; min-height: 40px; }
+.season-row-top .switch { margin: 0; }
+.season-dates { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.md-pick { display: inline-flex; gap: 4px; }
+.md-pick select {
+  font-size: 15px; padding: 6px 8px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface);
+  -webkit-appearance: none; appearance: none;
+}
+.season-home { display: block; text-decoration: none; margin-bottom: 16px; padding: 10px 14px; }
+.season-label { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; opacity: .7; margin-bottom: 2px; }
+.season-line { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0 8px; padding: 5px 0; }
+.season-line + .season-line { border-top: 1px solid rgba(160, 130, 60, .2); }
+.season-line .season-name { font-size: 16px; }
+.season-mini { flex-basis: 100%; font-size: 12px; opacity: .8; }
+.season-home { position: relative; margin: 12px 0 0; }
+.season-home-link { display: block; color: inherit; text-decoration: none; padding-right: 28px; }
+.season-x {
+  position: absolute; top: 6px; right: 6px; width: 30px; height: 30px; border: 0; border-radius: 50%;
+  background: none; color: inherit; opacity: .6; display: grid; place-items: center; cursor: pointer;
+}
+.season-x .icon { width: 16px; height: 16px; }
+.season-home .season-line .season-when { margin-right: 0; }
+.add-switch { margin: 4px 0 18px; }
+.add-switch .chip { display: inline-flex; align-items: center; justify-content: center; gap: 6px; text-decoration: none; color: inherit; padding: 10px 6px; border-radius: 12px; }
+.add-switch .chip .icon { width: 16px; height: 16px; }
+.add-switch .chip[aria-pressed="true"] { color: var(--bg); }
