@@ -42,6 +42,12 @@
   color-scheme: dark;
 }
 
+/* Sage green for the phone's own controls: date pickers, checkboxes, sliders. */
+:root { accent-color: #3e5a3a; }
+:root[data-theme="dark"] { accent-color: #8fa88a; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { accent-color: #8fa88a; } }
+input[type="date"] { accent-color: inherit; }
+
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
 body {

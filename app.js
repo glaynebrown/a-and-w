@@ -321,11 +321,11 @@ const isOnTimeline = m => m.kind !== 'letter' && m.kind !== 'wordlist';
 // ---------- growth ----------
 const MEASURES = [['weight', 'Weight', 'lb'], ['height', 'Height', 'in']];
 const num = v => (v === '' || v == null || !Number.isFinite(Number(v)) ? null : Number(v));
-// "24.5 lb · 32 in tall"
+// "24.5 lb · 32 in"
 function growthText(g = {}) {
   return [
     g.weight != null && `${g.weight} lb`,
-    g.height != null && `${g.height} in tall`,
+    g.height != null && `${g.height} in`,
   ].filter(Boolean).join(' · ');
 }
 function growthLines(m, only) {
