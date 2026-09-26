@@ -57,7 +57,8 @@ function ideaCard(i) {
   const tag = hidden ? (i.hide.mode === 'never' ? 'Not for us' : 'Not for now')
     : isFav(i) ? '' : !beenThere(i) ? 'Want to try' : '';
   return `<a class="card idea-card${hidden ? ' faded' : ''}" href="#/idea/${esc(i.id)}">
-    <div class="idea-thumb">${ph ? `<img src="${esc(ph.thumbUrl || ph.url)}" alt="" loading="lazy">` : ICON[isHome(i) ? 'home' : 'pin']}</div>
+    <div class="idea-thumb">${ph ? `<img src="${esc(ph.thumbUrl || ph.url)}" alt="" loading="lazy">`
+      : i.webPhoto ? `<img src="${esc(i.webPhoto)}" alt="" loading="lazy" onerror="this.remove()">` : ICON[isHome(i) ? 'home' : 'pin']}</div>
     <div class="idea-body">
       <p class="idea-title">${esc(i.title)}</p>
       <p class="idea-meta">${esc(ideaMeta(i))}</p>
@@ -116,14 +117,88 @@ function skipToday(id) {
   } catch {}
 }
 
+// Google Maps directions. On iPhone this link opens the Google Maps app when
+// it's installed (Safari otherwise). A saved Google place goes to that exact spot.
 function directionsUrl(i) {
   const home = (state.settings.home && state.settings.home.label) || '';
-  return i.address
-    ? `https://maps.apple.com/?daddr=${encodeURIComponent(i.address)}`
-    : `https://maps.apple.com/?q=${encodeURIComponent(`${i.title} ${home}`.trim())}`;
+  const dest = i.address || `${i.title} ${home}`.trim();
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(dest)}`
+    + (i.placeId && !String(i.placeId).startsWith('demo-') ? `&destination_place_id=${encodeURIComponent(i.placeId)}` : '');
 }
 function safeUrl(u) {
   try { const x = new URL(u); return /^https?:$/.test(x.protocol) ? x.href : ''; } catch { return ''; }
+}
+
+// ---------- Google results (Phase 3) ----------
+// Searches run in the "nearby" server function. Results are kept on this
+// phone for 3 days so repeating a search doesn't use up the monthly allowance.
+const CAT_QUERIES = {
+  park: 'playground', animals: 'petting zoo', water: 'splash pad', indoor: 'indoor playground',
+  library: 'library story time', events: 'family events', food: 'kid friendly restaurant',
+};
+const homeLabel = () => (state.settings.home && state.settings.home.label) || '';
+const savedByPlace = id => state.ideas.find(i => i.placeId === id);
+
+function guessCategory(r) {
+  const t = [r.type, ...(r.types || [])].join(' ');
+  if (/playground|park|garden|hiking|beach/.test(t) && !/water_park|amusement/.test(t)) return 'park';
+  if (/zoo|aquarium|farm|ranch|stable/.test(t)) return 'animals';
+  if (/water_park|swimming/.test(t)) return 'water';
+  if (/library|book_store/.test(t)) return 'library';
+  if (/restaurant|cafe|bakery|ice_cream|food|coffee/.test(t)) return 'food';
+  if (/amusement|museum|bowling|indoor|play|gym|trampoline/.test(t)) return 'indoor';
+  return '';
+}
+
+async function searchNearby(query) {
+  const home = state.settings.home || {};
+  if (!home.label) throw new Error('Add your home town in Settings first.');
+  const key = `aw-web:${home.label}|${query.toLowerCase()}`;
+  try {
+    const hit = JSON.parse(localStorage.getItem(key) || 'null');
+    if (hit && Date.now() - hit.t < 3 * 86400000) return hit.results;
+  } catch {}
+  const res = await DB.nearby(query, home);
+  // Remember where home is, so later searches skip that lookup.
+  if (res.home && !(Number.isFinite(home.lat) && Number.isFinite(home.lng))) {
+    const withPoint = { ...home, lat: res.home.lat, lng: res.home.lng };
+    state.settings = { ...state.settings, home: withPoint };
+    DB.saveSettings({ home: withPoint }).catch(console.error);
+  }
+  const results = [...res.results].sort((a, b) => (a.drive ?? 999) - (b.drive ?? 999));
+  try { localStorage.setItem(key, JSON.stringify({ t: Date.now(), results })); } catch {}
+  return results;
+}
+
+function webCard(r) {
+  const saved = savedByPlace(r.placeId);
+  const meta = [r.rating ? `★ ${r.rating.toFixed(1)} (${r.ratings.toLocaleString()})` : '', r.drive != null ? `${r.drive} min drive` : '', r.typeLabel].filter(Boolean).join(' · ');
+  return `<div class="card web-result">
+    <div class="idea-thumb">${r.photo ? `<img src="${esc(r.photo)}" alt="" loading="lazy" onerror="this.remove()">` : ICON.pin}</div>
+    <div class="idea-body">
+      <p class="idea-title">${esc(r.name)}</p>
+      <p class="idea-meta">${esc(meta)}</p>
+      <p class="idea-meta">${esc(r.address.replace(/, USA$/, ''))}</p>
+      <div class="web-actions">
+        ${saved ? `<a class="btn small-pill" href="#/idea/${esc(saved.id)}">Saved ✓</a>` : `<button type="button" class="btn small-pill primary" data-save-place="${esc(r.placeId)}">${ICON.plus} Save</button>`}
+        ${r.mapsUrl ? `<a class="btn small-pill" href="${esc(safeUrl(r.mapsUrl))}" target="_blank" rel="noopener">Maps</a>` : ''}
+      </div>
+    </div></div>`;
+}
+
+function bindWebCards(root, results, fallbackCat) {
+  $$('[data-save-place]', root).forEach(b => b.onclick = () => {
+    const r = results.find(x => x.placeId === b.dataset.savePlace);
+    busy(b, async () => {
+      await DB.addIdea({
+        title: r.name, category: guessCategory(r) || fallbackCat || '', cost: '', setting: '', length: '',
+        drive: r.drive, address: r.address.replace(/, USA$/, ''), link: safeUrl(r.website) || safeUrl(r.mapsUrl), notes: '',
+        placeId: r.placeId, webPhoto: r.photo || '', lastRating: null, hide: null,
+      }, []);
+      toast('Saved to your ideas');
+      b.outerHTML = `<span class="btn small-pill">Saved ✓</span>`;
+    }, 'Saving…');
+  });
 }
 
 // ---------- Things to do (list + search) ----------
@@ -164,18 +239,35 @@ function renderTodo() {
       // Favorites first, then want-to-try, then the rest; passed-on ones last.
       .sort((a, b) => (hiddenNow(a) - hiddenNow(b)) || ((b.lastRating || 0) - (a.lastRating || 0)) || a.title.localeCompare(b.title));
     $('#count').textContent = `${items.length} idea${items.length === 1 ? '' : 's'}`;
-    const home = (state.settings.home && state.settings.home.label) || '';
-    const web = q ? `<a class="card web-card" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${q} near ${home}`)}" target="_blank" rel="noopener">
-        ${ICON.search}<div><p class="idea-title">Search Google Maps for “${esc(q)}”</p><p class="idea-meta">Near ${esc(home)} · opens Maps</p></div></a>` : '';
+    const shownWeb = state.web && state.web.q === q && q;
+    const web = !q ? '' : shownWeb
+      ? `<p class="section-label">Nearby from Google</p>${state.web.results.map(webCard).join('') || '<div class="card empty"><p>Google didn’t find anything for that.</p></div>'}`
+      : `<button type="button" class="card web-card" id="web-go">${ICON.search}<div><p class="idea-title">Find “${esc(q)}” nearby</p>
+          <p class="idea-meta">Google results near ${esc(homeLabel())}, closest first</p></div></button><p class="progress" id="web-status" hidden></p>`;
     const empty = !state.ideas.length
       ? `<div class="card empty"><h2>Save your first idea</h2><p>A place you want to try, or something from TikTok to do at home. Only a name is needed.</p>
          <a class="btn primary" href="#/idea/new">${ICON.plus} Save idea</a></div>`
       : !items.length ? `<div class="card empty"><p>${q ? 'None of your saved ideas match.' : 'Nothing here yet.'}</p></div>` : '';
     $('#list').innerHTML = items.map(ideaCard).join('') + empty + web;
+    if (shownWeb) bindWebCards($('#list'), state.web.results);
+    const go = $('#web-go');
+    if (go) go.onclick = findNearby;
   };
+
+  function findNearby() {
+    const q = state.query.trim();
+    if (q.length < 2) return;
+    const status = $('#web-status'), go = $('#web-go');
+    if (status) { status.hidden = false; status.textContent = `Looking near ${homeLabel()}…`; }
+    if (go) go.disabled = true;
+    searchNearby(q)
+      .then(results => { state.web = { q, results }; draw(); })
+      .catch(e => { console.error(e); toast(friendlyError(e), true); if (go) go.disabled = false; if (status) status.hidden = true; });
+  }
   draw();
 
   $('#q').oninput = e => { state.query = e.target.value; draw(); };
+  $('#q').onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); findNearby(); } };
   $('#lf').onchange = e => { state.todoFilter = e.target.value; draw(); };
 }
 
@@ -208,7 +300,12 @@ function renderSuggest() {
     <div class="picks-head"><h2 id="matches"></h2><button class="btn" id="shuffle">${ICON.shuffle} Shuffle</button></div>
     <div id="picks"></div>
     <button class="btn block" id="all" style="margin-top:12px" hidden></button>
-    <a class="btn block" href="#/wheel" style="margin-top:10px">Spin the wheel with these</a>`;
+    <a class="btn block" href="#/wheel" style="margin-top:10px">Spin the wheel with these</a>
+
+    <div class="picks-head"><h2>More ideas nearby</h2></div>
+    <p class="muted small" id="web-hint"></p>
+    <button class="btn block" id="more-web" style="margin-top:10px">${ICON.search} Find new places</button>
+    <div id="web"></div>`;
 
   $$('.chip-wrap').forEach(g => $$('.chip', g).forEach(b => b.onclick = () => {
     const name = g.dataset.group;
@@ -237,6 +334,34 @@ function renderSuggest() {
     all.hidden = showAll || list.length <= 3;
     all.textContent = `See all ${list.length}`;
   }
+  // New places from Google, using the kind of thing and drive time picked above.
+  const webQuery = () => {
+    const base = p.cats.length === 1 && CAT_QUERIES[p.cats[0]] ? CAT_QUERIES[p.cats[0]] : 'things to do with toddlers';
+    return `${p.where === 'indoor' && !/indoor/.test(base) ? 'indoor ' : ''}${base}`;
+  };
+  function drawWeb() {
+    const q = webQuery();
+    const limit = (DRIVE_MOODS.find(d => d[0] === p.drive) || [])[2] ?? Infinity;
+    $('#web-hint').textContent = p.cats.includes('home') && p.cats.length === 1
+      ? 'At-home ideas don’t come from Google. Save the ones you find on TikTok.'
+      : `Searches Google for “${q}”${limit < Infinity ? ` within about ${limit} minutes` : ''}, skipping places you’ve saved.`;
+    const got = state.suggestWeb && state.suggestWeb.q === q ? state.suggestWeb.results : null;
+    $('#more-web').hidden = !!got || (p.cats.includes('home') && p.cats.length === 1);
+    if (!got) { $('#web').innerHTML = ''; return; }
+    const fitsDrive = got.filter(r => !savedByPlace(r.placeId) && (r.drive == null || r.drive <= limit));
+    $('#web').innerHTML = fitsDrive.map(webCard).join('') || '<div class="card empty"><p>Nothing new within that drive. Try a longer drive or a different kind of thing.</p></div>';
+    bindWebCards($('#web'), got, p.cats.length === 1 ? p.cats[0] : '');
+  }
+  $('#more-web').onclick = e => {
+    const q = webQuery();
+    busy(e.target, async () => {
+      state.suggestWeb = { q, results: await searchNearby(q) };
+      drawWeb();
+    }, 'Looking…');
+  };
+  const drawBoth = draw;
+  draw = showAll => { drawBoth(showAll); drawWeb(); };
+
   draw();
   $('#shuffle').onclick = () => { shown = weightedPicks(pool(p), 3); draw(); };
   $('#all').onclick = () => draw(true);
@@ -376,7 +501,8 @@ function renderIdea(id) {
 
   view.innerHTML = `
     <a class="back" href="#/todo" id="back">${ICON.back} Back</a>
-    ${(i.photos || []).length ? `<div class="full-photos">${i.photos.map(p => `<img src="${esc(p.url)}" alt="" loading="lazy" style="aspect-ratio:${p.w || 4}/${p.h || 3}">`).join('')}</div>` : ''}
+    ${(i.photos || []).length ? `<div class="full-photos">${i.photos.map(p => `<img src="${esc(p.url)}" alt="" loading="lazy" style="aspect-ratio:${p.w || 4}/${p.h || 3}">`).join('')}</div>`
+      : i.webPhoto ? `<div class="full-photos"><img src="${esc(i.webPhoto)}" alt="" loading="lazy" onerror="this.remove()"></div>` : ''}
     <p class="otd-label" style="color:var(--muted)">${esc(catLabel(i.category))}</p>
     <h1 style="font-size:26px">${esc(i.title)}</h1>
     <p class="muted small" style="margin:4px 0 6px">${esc(ideaMeta(i))}</p>

@@ -239,7 +239,7 @@ function openCrop(key) {
     const draw = () => { img.style.cssText = cropStyle(c); $('#cz', root).value = c.zoom; };
     draw();
     let drag = null;
-    circle.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY, cx: c.x, cy: c.y }; circle.setPointerCapture(e.pointerId); });
+    circle.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY, cx: c.x, cy: c.y }; try { circle.setPointerCapture(e.pointerId); } catch {} });
     circle.addEventListener('pointermove', e => {
       if (!drag) return;
       // Dragging right shows more of the left side, so the center point moves the other way.
@@ -298,7 +298,7 @@ function renderNowQuestions() {
     const startY = e.clientY;
     let to = from;
     row.classList.add('dragging');
-    handle.setPointerCapture(e.pointerId);
+    try { handle.setPointerCapture(e.pointerId); } catch {}
     const move = ev => {
       const dy = ev.clientY - startY;
       row.style.transform = `translateY(${dy}px)`;

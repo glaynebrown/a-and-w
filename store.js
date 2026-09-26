@@ -151,6 +151,13 @@ const Store = (() => {
       await Promise.all(removed.flatMap(p => [removeFile(p.path), removeFile(p.thumbPath)])).catch(console.error);
     },
 
+    // Google search near home (runs in the "nearby" server function, which holds the key).
+    async nearby(query, home) {
+      needOnline('Searching nearby');
+      const call = firebase.app().functions('us-east1').httpsCallable('nearby');
+      return (await call({ query, home })).data;
+    },
+
     // Small changes: visits, ratings, "not for now".
     patchIdea: (id, patch) => write(ideas().doc(id).update({ ...patch, updatedAt: ts() })),
 

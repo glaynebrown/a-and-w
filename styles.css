@@ -471,3 +471,11 @@ input:focus, textarea:focus, .btn:focus-visible, .chip:focus-visible { outline: 
 .nf-row { transition: transform .15s; background: var(--bg); }
 .nf-row.dragging { transition: none; position: relative; z-index: 2; box-shadow: 0 4px 14px rgba(60, 50, 30, .15); border-radius: 12px; }
 .grip { display: grid; place-items: center; width: 28px; height: 40px; flex: none; color: var(--muted); touch-action: none; cursor: grab; }
+
+/* ---------- Google results ---------- */
+button.web-card { width: 100%; text-align: left; cursor: pointer; font: inherit; color: inherit; }
+button.web-card:disabled { opacity: .6; }
+.web-result { display: flex; gap: 12px; align-items: flex-start; margin-top: 10px; }
+.web-result .idea-thumb { width: 72px; height: 72px; }
+.web-actions { display: flex; gap: 6px; margin-top: 8px; }
+.btn.small-pill { min-height: 34px; padding: 0 12px; font-size: 14px; }

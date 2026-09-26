@@ -147,6 +147,20 @@ const DemoStore = (() => {
         : { ...x, ...data, photos: [...(x.photos || []).filter(p => !gone.has(p.path)), ...added] });
       notifyIdeas();
     },
+    // Pretend Google results so the To do search can be tried in sample mode.
+    async nearby(query) {
+      await wait(600);
+      const names = ['Riverside Park', 'Maple Farm', 'Discovery Museum', 'Town Library', 'Creekside Splash Pad', 'Little Gym'];
+      return {
+        home: { lat: 38.42, lng: -77.41 },
+        results: names.map((n, i) => ({
+          placeId: `demo-${i}`, name: `${n} (${query})`, address: `${100 + i * 17} Main St, Stafford, VA`,
+          rating: 4 + (i % 9) / 10, ratings: 40 + i * 57, type: ['park', 'farm', 'museum', 'library', 'water_park', 'playground'][i],
+          typeLabel: ['Park', 'Farm', 'Museum', 'Library', 'Water Park', 'Playground'][i], types: [],
+          mapsUrl: 'https://maps.google.com', website: '', photo: samplePhoto(200 + i).url, drive: 6 + i * 9,
+        })),
+      };
+    },
     async patchIdea(id, patch) {
       ideas = ideas.map(x => x.id === id ? { ...x, ...patch } : x);
       notifyIdeas();
