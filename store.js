@@ -3,7 +3,7 @@
    Firestore layout (one account -- yours):
      users/{uid}                     settings: twins, birthday, home location
      users/{uid}/moments/{id}        one timeline entry:
-        { kind: 'moment'|'first'|'quote', who: ['will','millie'], date: 'YYYY-MM-DD',
+        { kind: 'moment'|'quote'|'growth'|..., first: true for a ★ First (older ones: kind 'first'), who: ['will','millie'], date: 'YYYY-MM-DD',
           caption, photos: [{ path, thumbPath, url, thumbUrl, w, h }], ideaId?, createdAt, updatedAt }
      users/{uid}/ideas/{id}          one place or at-home idea:
         { title, category, cost, drive, setting, length, address, link, notes, photos,

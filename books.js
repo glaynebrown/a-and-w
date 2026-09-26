@@ -330,7 +330,7 @@ async function makeBook(pick, progress) {
   // Everything about one entry's layout, worked out before drawing so page
   // breaks never split a photo from its caption.
   function layout(m) {
-    const meta = [Dates.short(m.date), pick.who === 'both' ? whoText(m.who) : '', m.kind === 'first' ? 'FIRST' : '',
+    const meta = [Dates.short(m.date), pick.who === 'both' ? whoText(m.who) : '', isFirst(m) ? 'FIRST' : '',
       m.ideaId && ideaById(m.ideaId) && m.caption !== ideaById(m.ideaId).title ? ideaById(m.ideaId).title : ''].filter(Boolean);
     let lines = [], textFont = ['times', 'normal', 13], lineH = 17;
     if (m.kind === 'quote') {

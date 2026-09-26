@@ -426,9 +426,13 @@ function photoGrid(m) {
   return `<div class="grid ${cls}">${cells}</div>`;
 }
 
+// ★ First is a tag that can go on a moment or a quote (older entries used kind 'first').
+const isFirst = m => m.kind === 'first' || !!m.first;
+
 function kindBadge(m) {
-  if (m.kind === 'first') return '<span class="badge-first">★ First</span>';
-  if (m.kind === 'quote') return '<span class="badge-quote">“ Quote</span>';
+  const first = isFirst(m) ? '<span class="badge-first">★ First</span>' : '';
+  if (m.kind === 'quote') return first + '<span class="badge-quote">“ Quote</span>';
+  if (first) return first;
   if (m.kind === 'growth') return '<span class="badge-quote">Growth</span>';
   if (m.kind === 'snapshot') return '<span class="badge-quote">Right now</span>';
   if (m.kind === 'words') return '<span class="badge-quote">Words</span>';
@@ -511,6 +515,7 @@ const KIND_FILTERS = [['all', 'All'], ['first', '★ Firsts'], ['quote', 'Quotes
 // frequent weigh-ins don't crowd the All view.
 function matches(m, who, kind) {
   if (who !== 'both' && !(m.who || []).includes(who)) return false;
+  if (kind === 'first') return isFirst(m);
   return kind === 'all' ? m.kind !== 'growth' : m.kind === kind;
 }
 
@@ -625,7 +630,8 @@ function renderForm(id, startKind) {
   if (m && m.kind === 'snapshot') return renderNowForm(m.who[0], m.id);
   if (id && id !== 'growth' && !m) return renderMoment(id);
   const form = {
-    kind: m ? m.kind : startKind === 'growth' ? 'growth' : 'moment',
+    kind: m ? (m.kind === 'first' ? 'moment' : m.kind) : startKind === 'growth' ? 'growth' : 'moment',
+    first: m ? isFirst(m) : false,
     keep: m ? [...(m.photos || [])] : [],
     removed: [],
     added: [],             // { file, preview, date }
@@ -649,10 +655,10 @@ function renderForm(id, startKind) {
     <div class="field" style="margin-top:18px"><span class="field-label">What kind</span>
       <div class="seg" id="kind">
         <button type="button" class="chip" data-kind="moment">Moment</button>
-        <button type="button" class="chip" data-kind="first">★ First</button>
         <button type="button" class="chip" data-kind="quote">Quote</button>
         <button type="button" class="chip" data-kind="growth">Growth</button>
       </div>
+      <button type="button" class="chip first-toggle" id="first" aria-pressed="false">★ It’s a first</button>
     </div>
 
     <div id="growth-fields">${twins().map(t => `
@@ -681,13 +687,16 @@ function renderForm(id, startKind) {
   function drawKind() {
     $$('[data-kind]').forEach(b => b.setAttribute('aria-pressed', b.dataset.kind === form.kind));
     const quote = form.kind === 'quote', growth = form.kind === 'growth';
-    $('#cap-label').textContent = quote ? 'What they said' : form.kind === 'first' ? 'What was the first?' : growth ? 'Note (optional)' : 'Caption';
-    caption.placeholder = quote ? 'Uh oh, ball go bye bye' : form.kind === 'first' ? 'First steps' : growth ? '18-month checkup' : 'Pumpkin patch with Grandma';
+    $('#first').hidden = growth;
+    $('#first').setAttribute('aria-pressed', form.first && !growth);
+    $('#cap-label').textContent = quote ? (form.first ? 'Their first words' : 'What they said') : form.first ? 'What was the first?' : growth ? 'Note (optional)' : 'Caption';
+    caption.placeholder = quote ? (form.first ? 'Doggy go!' : 'Uh oh, ball go bye bye') : form.first ? 'First steps' : growth ? '18-month checkup' : 'Pumpkin patch with Grandma';
     $('#growth-fields').hidden = !growth;
     const who = readWho($('#who'));
     $$('[data-gt]').forEach(el => { el.hidden = !who.includes(el.dataset.gt); });
   }
   $$('[data-kind]').forEach(b => b.onclick = () => { form.kind = b.dataset.kind; drawKind(); });
+  $('#first').onclick = () => { form.first = !form.first; drawKind(); };
   bindToggles($('#who'));
   $('#who').addEventListener('click', () => setTimeout(drawKind));
   drawKind();
@@ -759,7 +768,7 @@ function renderForm(id, startKind) {
         prepared.push(await Photos.prepare(form.added[i].file));
       }
       const onEach = n => { progress.textContent = `Uploading ${n} of ${prepared.length}…`; };
-      const data = { kind: form.kind, who: growth ? Object.keys(growth) : who, date, caption: text, growth: growth || null };
+      const data = { kind: form.kind, first: form.first && form.kind !== 'growth', who: growth ? Object.keys(growth) : who, date, caption: text, growth: growth || null };
       if (m) {
         await DB.updateMoment(m, data, prepared, form.removed, onEach);
         toast('Saved');

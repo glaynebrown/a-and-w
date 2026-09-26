@@ -542,3 +542,7 @@ button.web-card:disabled { opacity: .6; }
 .words-lists h2 { font-size: 18px; }
 .words-lists p { font-size: 14px; }
 .words-lists a { color: var(--sage-ink); }
+.first-toggle { margin-top: 8px; width: 100%; padding: 10px; border-radius: 12px; }
+.first-toggle[aria-pressed="true"] { background: #f6ecd6; border-color: var(--gold); color: #7a5c1e; }
+:root[data-theme="dark"] .first-toggle[aria-pressed="true"] { background: #3a321f; color: var(--gold); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .first-toggle[aria-pressed="true"] { background: #3a321f; color: var(--gold); } }
