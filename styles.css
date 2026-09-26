@@ -485,3 +485,37 @@ button.web-card:disabled { opacity: .6; }
 .web-result .idea-thumb { width: 72px; height: 72px; }
 .web-actions { display: flex; gap: 6px; margin-top: 8px; }
 .btn.small-pill { min-height: 34px; padding: 0 12px; font-size: 14px; }
+
+/* ---------- A&W calendar ---------- */
+.date-field {
+  width: 100%; min-height: 46px; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--border);
+  background: var(--surface); display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  font-size: 16px; text-align: left; cursor: pointer;
+}
+.date-field .icon { color: var(--muted); }
+.date-field .placeholder { color: var(--muted); }
+.date-tap { cursor: pointer; }
+.dp-modal { padding: 16px 14px 18px; }
+.dp-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 8px; }
+.dp-title { display: flex; gap: 4px; }
+.dp-title select {
+  border: 0; background: none; font: 20px var(--serif); color: var(--text); padding: 4px 2px;
+  -webkit-appearance: none; appearance: none; text-align: center; cursor: pointer;
+}
+.dp-arrow {
+  width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface);
+  font-size: 22px; line-height: 1; color: var(--text); cursor: pointer;
+}
+.dp-arrow:disabled { opacity: .3; }
+.dp-weekdays, .dp-grid { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; }
+.dp-weekdays span { font-size: 12px; color: var(--muted); padding: 6px 0; }
+.dp-grid { gap: 4px 0; }
+.dp-day {
+  width: 40px; height: 40px; margin: 0 auto; border-radius: 50%; border: 0; background: none;
+  font-size: 16px; color: var(--text); cursor: pointer;
+}
+.dp-day.today { box-shadow: inset 0 0 0 1.5px var(--sage); color: var(--sage-ink); }
+.dp-day.selected { background: var(--sage-ink); color: var(--bg); box-shadow: none; }
+.dp-day:disabled { color: var(--border); cursor: default; }
+.dp-day:not(:disabled):not(.selected):active { background: var(--sage-bg); }
+.dp-foot { display: flex; justify-content: space-between; margin-top: 12px; }

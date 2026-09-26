@@ -76,6 +76,110 @@ function confirmBox(title, body, yes, onYes) {
   (root, close) => $('#yes', root).onclick = e => busy(e.target, async () => { await onYes(); close(); }, 'Working…'));
 }
 
+// ---------- date picker ----------
+// iPhone's built-in date picker ignores the app's colors, so every date field
+// becomes a button that opens A&W's own sage-and-cream calendar. It happens
+// automatically for any <input type="date"> that appears on screen.
+const MONTHS_LONG = [...Array(12)].map((_, i) => new Date(2000, i, 1).toLocaleDateString(undefined, { month: 'long' }));
+const CAL_ICON = `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>`;
+const valueProp = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+
+function enhanceDateInput(input) {
+  if (input.dataset.dp) return;
+  input.dataset.dp = '1';
+  const { min, max } = input;
+  input.type = 'hidden';
+  // Letters: tapping the written date on the stationery opens the calendar.
+  const tapTarget = input.closest('.date-tap');
+  let btn = tapTarget, draw = () => {};
+  if (!tapTarget) {
+    btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'date-field';
+    input.after(btn);
+    draw = () => {
+      const v = valueProp.get.call(input);
+      btn.innerHTML = `<span class="${v ? '' : 'placeholder'}">${v ? esc(Dates.pretty(v)) : 'Pick a date'}</span>${CAL_ICON}`;
+    };
+  }
+  // Setting .value from code (like a date read from a photo) redraws the button too.
+  Object.defineProperty(input, 'value', {
+    configurable: true,
+    get: () => valueProp.get.call(input),
+    set: v => { valueProp.set.call(input, v); draw(); },
+  });
+  draw();
+  btn.addEventListener('click', e => {
+    e.preventDefault();
+    openDatePicker(input.value, { min, max }, v => {
+      input.value = v;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+  });
+}
+
+function openDatePicker(value, { min, max }, onPick) {
+  const t = Dates.today();
+  const start = Dates.valid(value) ? value : (max && t > max ? max : t);
+  let y = Number(start.slice(0, 4)), m = Number(start.slice(5, 7));
+  const firstYear = min ? Number(min.slice(0, 4)) : 2020;
+  const lastYear = max ? Number(max.slice(0, 4)) : Number(t.slice(0, 4)) + 5;
+  const allowed = d => (!min || d >= min) && (!max || d <= max);
+  const pad = n => String(n).padStart(2, '0');
+
+  openModal(`
+    <div class="dp-head">
+      <button type="button" class="dp-arrow" data-step="-1" aria-label="Previous month">‹</button>
+      <div class="dp-title">
+        <select class="dp-month" aria-label="Month">${MONTHS_LONG.map((n, i) => `<option value="${i + 1}">${n}</option>`).join('')}</select>
+        <select class="dp-year" aria-label="Year">${Array.from({ length: lastYear - firstYear + 1 }, (_, i) => lastYear - i).map(yr => `<option>${yr}</option>`).join('')}</select>
+      </div>
+      <button type="button" class="dp-arrow" data-step="1" aria-label="Next month">›</button>
+    </div>
+    <div class="dp-weekdays" aria-hidden="true"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div>
+    <div class="dp-grid"></div>
+    <div class="dp-foot"><button type="button" class="btn small-pill" data-close>Cancel</button>
+      <button type="button" class="btn small-pill" data-today${allowed(t) ? '' : ' disabled'}>Today</button></div>`, (root, close) => {
+    const modal = $('.modal', root);
+    modal.classList.add('dp-modal');
+    const monthSel = $('.dp-month', modal), yearSel = $('.dp-year', modal), grid = $('.dp-grid', modal);
+    const pick = v => { close(); onPick(v); };
+    function drawCal() {
+      monthSel.value = String(m);
+      yearSel.value = String(y);
+      const lead = new Date(y, m - 1, 1).getDay();
+      const days = new Date(y, m, 0).getDate();
+      let html = '<span></span>'.repeat(lead);
+      for (let d = 1; d <= days; d++) {
+        const iso = `${y}-${pad(m)}-${pad(d)}`;
+        html += `<button type="button" class="dp-day${iso === value ? ' selected' : ''}${iso === t ? ' today' : ''}" data-date="${iso}"${allowed(iso) ? '' : ' disabled'} aria-label="${esc(Dates.pretty(iso))}">${d}</button>`;
+      }
+      grid.innerHTML = html;
+      $$('[data-date]', grid).forEach(b => { b.onclick = () => pick(b.dataset.date); });
+      $$('[data-step]', modal).forEach(b => {
+        const step = Number(b.dataset.step);
+        const ny = m + step < 1 ? y - 1 : m + step > 12 ? y + 1 : y;
+        const nm = ((m + step + 11) % 12) + 1;
+        const firstOfNext = `${ny}-${pad(nm)}-01`, lastOfNext = `${ny}-${pad(nm)}-31`;
+        b.disabled = ny < firstYear || ny > lastYear || (max && firstOfNext > max) || (min && lastOfNext < min);
+      });
+    }
+    $$('[data-step]', modal).forEach(b => b.onclick = () => {
+      m += Number(b.dataset.step);
+      if (m < 1) { m = 12; y--; } else if (m > 12) { m = 1; y++; }
+      drawCal();
+    });
+    monthSel.onchange = () => { m = Number(monthSel.value); drawCal(); };
+    yearSel.onchange = () => { y = Number(yearSel.value); drawCal(); };
+    $('[data-today]', modal).onclick = () => pick(t);
+    drawCal();
+  });
+}
+
+new MutationObserver(() => $$('input[type="date"]').forEach(enhanceDateInput))
+  .observe(document.body, { childList: true, subtree: true });
+
 // ---------- appearance ----------
 function getTheme() {
   try { return localStorage.getItem('aw-theme') || 'system'; } catch { return 'system'; }
