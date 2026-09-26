@@ -519,3 +519,6 @@ button.web-card:disabled { opacity: .6; }
 .dp-day:disabled { color: var(--border); cursor: default; }
 .dp-day:not(:disabled):not(.selected):active { background: var(--sage-bg); }
 .dp-foot { display: flex; justify-content: space-between; margin-top: 12px; }
+/* Date centered in its box; calendar icon stays on the right. */
+.date-field { position: relative; justify-content: center; padding: 10px 44px; }
+.date-field .icon { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); }
