@@ -576,21 +576,26 @@ function renderMoment(id) {
   if (m && m.kind === 'letter') return renderLetter(id);
   if (!m) { view.innerHTML = `<a class="back" href="#/timeline">${ICON.back} Timeline</a><div class="card empty"><p>This moment isn’t here anymore.</p></div>`; return; }
   const ages = ageOn(m.date);
-  view.innerHTML = `
-    <a class="back" href="#/timeline" id="back">${ICON.back} Back</a>
-    <div class="moment-meta" style="margin-bottom:8px">${pills(m.who)}${kindBadge(m)}</div>
-    <h1 style="font-size:24px">${m.kind === 'quote' ? '“' + esc(m.caption) + '”' : m.kind === 'snapshot' ? `${esc(whoText(m.who))} right now` : esc(m.caption || (m.kind === 'growth' ? 'Growth check' : Dates.pretty(m.date)))}</h1>
-    ${m.ideaId && ideaById(m.ideaId) ? `<a class="text-link" style="margin:6px 0 0" href="#/idea/${esc(m.ideaId)}">${ICON.pin.replace('class="icon"', 'class="icon" style="width:16px;height:16px;vertical-align:-3px"')} ${esc(ideaById(m.ideaId).title)}</a>` : ''}
-    <p class="muted small" style="margin:4px 0 14px">${esc([m.caption || m.kind === 'growth' || m.kind === 'snapshot' ? Dates.pretty(m.date) : '', ages, m.kind === 'quote' ? whoText(m.who) : ''].filter(Boolean).join(' · '))}</p>
-    ${m.kind === 'growth' ? `<div style="margin-bottom:14px">${growthLines(m)}<a class="text-link" href="#/growth">See growth chart</a></div>` : ''}
-    ${m.kind === 'snapshot' ? `<dl class="answers" style="margin-bottom:16px">${orderedAnswers(m.answers).map(([k, v]) =>
-      `<div><dt>${esc(fieldLabel(k))}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>` : ''}
-    <div class="full-photos">${(m.photos || []).map(p => p.video
+  // A short caption is the headline. A long one (like an imported Facebook post)
+  // reads as a paragraph under the photos, and the date becomes the headline.
+  const long = (m.kind === 'moment' || m.kind === 'first') && (m.caption || '').length > 90;
+  const photosHtml = `<div class="full-photos">${(m.photos || []).map(p => p.video
       // A video (only the Facebook import has one): plays right here. thumbUrl is its still frame.
       ? `<video src="${esc(p.url)}" poster="${esc(p.thumbUrl || '')}" controls playsinline preload="none"
           style="aspect-ratio:${p.w || 16}/${p.h || 9}"></video>`
       : `<a href="${esc(p.url)}" target="_blank" rel="noopener"><img src="${esc(p.url)}" alt="" loading="lazy" decoding="async"
-        style="aspect-ratio:${p.w || 4}/${p.h || 3}"></a>`).join('')}</div>
+        style="aspect-ratio:${p.w || 4}/${p.h || 3}"></a>`).join('')}</div>`;
+  view.innerHTML = `
+    <a class="back" href="#/timeline" id="back">${ICON.back} Back</a>
+    <div class="moment-meta" style="margin-bottom:8px">${pills(m.who)}${kindBadge(m)}</div>
+    <h1 style="font-size:24px">${long ? esc(Dates.pretty(m.date)) : m.kind === 'quote' ? '“' + esc(m.caption) + '”' : m.kind === 'snapshot' ? `${esc(whoText(m.who))} right now` : esc(m.caption || (m.kind === 'growth' ? 'Growth check' : Dates.pretty(m.date)))}</h1>
+    ${m.ideaId && ideaById(m.ideaId) ? `<a class="text-link" style="margin:6px 0 0" href="#/idea/${esc(m.ideaId)}">${ICON.pin.replace('class="icon"', 'class="icon" style="width:16px;height:16px;vertical-align:-3px"')} ${esc(ideaById(m.ideaId).title)}</a>` : ''}
+    <p class="muted small" style="margin:4px 0 14px">${esc([!long && (m.caption || m.kind === 'growth' || m.kind === 'snapshot') ? Dates.pretty(m.date) : '', ages, m.kind === 'quote' ? whoText(m.who) : ''].filter(Boolean).join(' · '))}</p>
+    ${m.kind === 'growth' ? `<div style="margin-bottom:14px">${growthLines(m)}<a class="text-link" href="#/growth">See growth chart</a></div>` : ''}
+    ${m.kind === 'snapshot' ? `<dl class="answers" style="margin-bottom:16px">${orderedAnswers(m.answers).map(([k, v]) =>
+      `<div><dt>${esc(fieldLabel(k))}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>` : ''}
+    ${photosHtml}
+    ${long ? `<p class="moment-text">${esc(m.caption)}</p>` : ''}
     <div class="actions">
       <a class="btn" href="#/moment/${esc(m.id)}/edit">Edit</a>
       <button class="btn danger" id="del">Delete</button>

@@ -534,3 +534,6 @@ button.web-card:disabled { opacity: .6; }
   background: rgba(40, 38, 32, .55); color: #fff; display: grid; place-items: center; font-size: 18px; padding-left: 3px; pointer-events: none;
 }
 .grid .cell > img { width: 100%; height: 100%; object-fit: cover; }
+.moment-text { font-family: var(--serif); font-size: 17px; line-height: 1.6; white-space: pre-line; margin: 8px 2px 0; }
+/* Long captions (like imported Facebook posts) show 4 lines on the timeline; the full text is on the moment page. */
+.card.moment .caption, .card.moment .journal-text { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
