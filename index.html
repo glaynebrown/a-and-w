@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>A&amp;W</title>
+<meta name="description" content="Will and Millie’s story, and things to do together.">
+<meta name="theme-color" content="#fbf7f2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1f1e1b" media="(prefers-color-scheme: dark)">
+<!-- Home-screen app: icon, name, and opening full-screen without browser bars -->
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="A&amp;W">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="icon" href="icon-192.png">
+<link rel="stylesheet" href="styles.css">
+<script>
+  // Apply the saved Light/Dark choice before anything draws, so there's no flash.
+  try { const t = localStorage.getItem('aw-theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch {}
+</script>
+</head>
+<body>
+<div id="banner" class="banner" hidden></div>
+<div id="offline-bar" hidden>Offline · showing what’s saved on this phone</div>
+<main id="view" class="container"><p class="loading">Loading…</p></main>
+<nav id="tabs" class="tabs" hidden aria-label="Main">
+  <a href="#/timeline" data-tab="timeline"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="6" cy="6" r="2"/><circle cx="6" cy="18" r="2"/><path d="M6 8v8M11 6h9M11 18h9M11 12h6"/></svg>Timeline</a>
+  <a href="#/now" data-tab="now"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 18a2 2 0 0 1 2 2a2 2 0 0 1 2-2a2 2 0 0 1-2-2a2 2 0 0 1-2 2zm0-12a2 2 0 0 1 2 2a2 2 0 0 1 2-2a2 2 0 0 1-2-2a2 2 0 0 1-2 2zM9 18a6 6 0 0 1 6-6a6 6 0 0 1-6-6a6 6 0 0 1-6 6a6 6 0 0 1 6 6z"/></svg>Right Now</a>
+  <a href="#/" data-tab=""><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M4 11 12 4l8 7v8.5a1.5 1.5 0 0 1-1.5 1.5H15v-6H9v6H5.5A1.5 1.5 0 0 1 4 19.5z"/></svg>Home</a>
+  <a href="#/todo" data-tab="todo"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg>To do</a>
+  <a href="#/letters" data-tab="letters"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.4 23.2 8.6 14.4 9.2 14.3C9 9.2 13.4 4.6 21 2.4 19.6 5 18.1 6.8 16.1 8.2L18.2 8.3C16.6 10.1 14.6 11.3 12.4 12L14.3 12.5C12.7 13.8 11.1 14.6 9.7 15L5.2 20.6 4.4 20.9Z" fill="currentColor"/><path d="M9.5 14.7Q12.3 9.6 17.2 5.9" fill="none" style="stroke:var(--bg)" stroke-width=".8" stroke-linecap="round"/></svg>Letters</a>
+</nav>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="dates.js"></script>
+<script src="photos.js"></script>
+<script src="store.js"></script>
+<script src="demo.js"></script>
+<script src="todo.js"></script>
+<script src="books.js"></script>
+<script src="now.js"></script>
+<script src="words.js"></script>
+<script src="letters.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

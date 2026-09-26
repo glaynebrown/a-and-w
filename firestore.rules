@@ -1,0 +1,16 @@
+rules_version = '2';
+
+// Only the signed-in owner can read or write their own users/{uid} tree.
+// New sign-ups are also turned off in the Firebase console (see README), so
+// your account is the only one that exists.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+
+      match /{sub=**} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+    }
+  }
+}
