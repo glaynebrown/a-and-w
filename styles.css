@@ -611,3 +611,5 @@ button.web-card:disabled { opacity: .6; }
 .add-switch .chip[aria-pressed="true"] { color: var(--bg); }
 /* Same 12px gap below the In season card as between the other Home cards. */
 .season-home + .card { margin-top: 12px; }
+.todo-seasons:not(:empty) { margin-top: 16px; }
+.todo-seasons .season-banners { margin-bottom: 0; }

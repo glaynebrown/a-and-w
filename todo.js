@@ -227,12 +227,12 @@ function searchMatches(i, q) {
 function renderTodo() {
   view.innerHTML = `
     <div class="page-head"><h1>Things to do</h1><div class="head-actions"><a class="icon-btn plain" href="#/seasons" aria-label="Seasonal traditions">${ICON.gear}</a><a class="icon-btn" href="#/idea/new" aria-label="Save idea">${ICON.plus}</a></div></div>
-    ${seasonBanners('todo')}
     <div class="search">${ICON.search}<input type="search" id="q" placeholder="Splash pad, story time, farm…" value="${esc(state.query)}" autocomplete="off" enterkeyhint="search"></div>
     <div class="quick" style="margin-top:12px">
       <a class="big-btn sage" href="#/suggest">${ICON.sliders}Suggestions</a>
       <a class="big-btn blush" href="#/wheel">${ICON.wheel}Spin the wheel</a>
     </div>
+    <div class="todo-seasons">${seasonBanners('todo')}</div>
     <div class="list-head">
       <select id="lf" aria-label="Show">${LIST_FILTERS.map(([k, t]) => `<option value="${k}"${state.todoFilter === k ? ' selected' : ''}>${t}</option>`).join('')}</select>
       <span class="muted small" id="count"></span>
