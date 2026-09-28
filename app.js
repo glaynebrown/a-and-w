@@ -516,22 +516,32 @@ function renderHome() {
   bindSeasonBanners(view);
 }
 
-// Home's photo grid (2 rows): the 3 newest photos plus 3 others from any time, in
-// mixed-up spots. The mix changes once a day (it's worked out from today's
-// date), so it's the same all day. A new photo joins as one of the newest
-// without reshuffling the rest.
+// Home's photo grid (2 rows): 3 photos from the last 2 months and 3 older ones,
+// shuffled into random spots. The pick changes once a day (it's seeded by
+// today's date), and a photo you just added always gets a spot.
 function homePhotos(moments) {
   const all = moments.flatMap(m => (m.photos || []).map(p => ({ m, p })));
   const day = Dates.today();
-  // Same number for the same photo on the same day; a new day gives a new order.
-  const rank = t => {
-    let h = 2166136261;
-    for (const c of day + (t.p.path || t.p.url)) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
-    return h >>> 0;
+  // A random-number generator seeded with today's date: same picks all day, new ones tomorrow.
+  let seed = 2166136261;
+  for (const c of day) seed = Math.imul(seed ^ c.charCodeAt(0), 16777619);
+  const rand = () => {
+    seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
-  const recent = all.slice(0, 3);
-  const rest = all.slice(3).sort((a, b) => rank(a) - rank(b)).slice(0, 6 - recent.length);
-  return [...recent, ...rest].sort((a, b) => rank(a) - rank(b));
+  const shuffle = a => { for (let n = a.length - 1; n > 0; n--) { const k = Math.floor(rand() * (n + 1)); [a[n], a[k]] = [a[k], a[n]]; } return a; };
+
+  const cutoff = addDays(day, -61);
+  const newest = all[0] ? [all[0]] : [];                       // just added: always shown
+  const recent = shuffle(all.slice(1).filter(t => t.m.date >= cutoff));
+  const older = shuffle(all.filter(t => t.m.date < cutoff));
+  const recentPicks = [...newest, ...recent].slice(0, 3);
+  const olderPicks = older.slice(0, 6 - recentPicks.length);
+  const fill = recent.slice(recentPicks.length - newest.length).filter(t => !recentPicks.includes(t));
+  const picks = [...recentPicks, ...olderPicks, ...fill].slice(0, 6);
+  return shuffle(picks);
 }
 
 // ---------- timeline ----------
