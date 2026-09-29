@@ -212,6 +212,7 @@ const ICON = {
   chat: svg('<path d="M5 18.5V6.5A2.5 2.5 0 0 1 7.5 4h9A2.5 2.5 0 0 1 19 6.5v7a2.5 2.5 0 0 1-2.5 2.5H9z"/>'),
   chevronRight: svg('<path d="m9 6 6 6-6 6"/>'),
   chart: svg('<path d="M4 4v16h16"/><path d="m7 15 4-4 3 3 5-6"/>'),
+  // (filled version below as HEART_FILLED)
   heart: svg('<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>'),
   download: svg('<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>'),
   wheel: svg('<circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6 5.6 18.4"/><circle cx="12" cy="12" r="2"/>'),
@@ -219,6 +220,7 @@ const ICON = {
   sliders: svg('<path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>'),
   shuffle: svg('<path d="M4 7h3l10 10h3M4 17h3l3-3M14 10l3-3h3M17 4l3 3-3 3M17 14l3 3-3 3"/>'),
 };
+const HEART_FILLED = `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z" fill="currentColor"/></svg>`;
 const WHEEL = `<svg width="54" height="54" viewBox="0 0 54 54" aria-hidden="true" style="flex:none">
   <circle cx="27" cy="27" r="25" style="fill:var(--sage-bg)"/><path d="M27 27V2a25 25 0 0 1 25 25z" style="fill:var(--blush-bg)"/>
   <path d="M27 27v25A25 25 0 0 1 2 27z" style="fill:var(--blush-bg)"/><path d="M27 27h25a25 25 0 0 1-25 25z" style="fill:var(--sand-bg)"/>
@@ -473,7 +475,7 @@ function momentCard(m, label = '', only = null) {
   const href = m.kind === 'words' ? `#/words/${esc(m.who[0])}` : `#/moment/${esc(m.id)}`;
   return `<a class="card moment" href="${href}">
     ${label ? `<p class="otd-label">${esc(label)}</p>` : ''}
-    <div class="moment-meta">${m.kind === 'growth' ? '' : pills(m.who)}${kindBadge(m)}<span class="date">${esc(Dates.short(m.date))}</span></div>
+    <div class="moment-meta">${m.kind === 'growth' ? '' : pills(m.who)}${kindBadge(m)}${m.fav ? `<span class="card-heart" aria-label="Favorite">${HEART_FILLED}</span>` : ''}<span class="date">${esc(Dates.short(m.date))}</span></div>
     ${photoGrid(m)}${body}</a>`;
 }
 
@@ -546,12 +548,15 @@ function homePhotos(moments) {
 
 // ---------- timeline ----------
 // Two filters that combine: whose moments (both, Will, Millie) and what kind.
-const KIND_FILTERS = [['all', 'All'], ['first', '★ Firsts'], ['quote', 'Quotes'], ['words', 'Words'], ['growth', 'Growth']];
+const KIND_FILTERS = [['all', 'All'], ['fav', null], ['first', '★ Firsts'], ['words', 'Words'], ['growth', 'Growth']];
 // Growth checkups only show under the Growth filter (and on the chart), so
 // frequent weigh-ins don't crowd the All view.
 function matches(m, who, kind) {
   if (who !== 'both' && !(m.who || []).includes(who)) return false;
   if (kind === 'first') return isFirst(m);
+  if (kind === 'fav') return !!m.fav;
+  // Words = everything they say: quotes plus word milestones.
+  if (kind === 'words') return m.kind === 'quote' || m.kind === 'words';
   return kind === 'all' ? m.kind !== 'growth' : m.kind === kind;
 }
 
@@ -569,7 +574,7 @@ function renderTimeline() {
   const whoChips = [['both', 'Both'], ...twins().map(t => [t.key, t.name])].map(([key, text]) =>
     `<button class="chip ${key === 'both' ? '' : key}" data-who-f="${key}" aria-pressed="${who === key}">${esc(text)}</button>`).join('');
   const kindChips = KIND_FILTERS.map(([key, text]) =>
-    `<button class="chip" data-kind-f="${key}" aria-pressed="${kind === key}">${esc(text)}</button>`).join('');
+    `<button class="chip${text ? '' : ' chip-heart'}" data-kind-f="${key}" aria-pressed="${kind === key}"${text ? '' : ' aria-label="Favorites"'}>${text ? esc(text) : HEART_FILLED}</button>`).join('');
 
   // Pregnancy months sit under one "Before you were born" heading (newest first,
   // so it comes right after their birth month).
@@ -582,7 +587,7 @@ function renderTimeline() {
   }).join('');
 
   const empty = state.moments.length
-    ? `<div class="card empty"><p>${kind === 'words' ? 'Milestone cards show up here at their 50th, 100th, and 150th words, and beyond.' : 'Nothing here with this filter yet.'}</p></div>`
+    ? `<div class="card empty"><p>${kind === 'words' ? 'Quotes you add, and milestones at their 50th, 100th, and 150th words, show up here.' : 'Nothing here with this filter yet.'}</p></div>`
     : `<div class="card empty"><h2>Their story starts here</h2><p>Every moment you add shows up here, month by month.</p>
        <a class="btn primary" href="#/add">${ICON.camera} Add moment</a></div>`;
 
@@ -633,7 +638,8 @@ function renderMoment(id) {
         style="aspect-ratio:${p.w || 4}/${p.h || 3}"></a>`).join('')}</div>`;
   view.innerHTML = `
     <a class="back" href="#/timeline" id="back">${ICON.back} Back</a>
-    <div class="moment-meta" style="margin-bottom:8px">${pills(m.who)}${kindBadge(m)}</div>
+    <div class="moment-meta" style="margin-bottom:8px">${pills(m.who)}${kindBadge(m)}
+      <button type="button" class="fav-btn${m.fav ? ' on' : ''}" id="fav" aria-pressed="${!!m.fav}" aria-label="Favorite">${m.fav ? HEART_FILLED : ICON.heart}</button></div>
     <h1 style="font-size:24px">${long ? esc(Dates.pretty(m.date)) : m.kind === 'quote' ? '“' + esc(m.caption) + '”' : m.kind === 'snapshot' ? `${esc(whoText(m.who))} right now` : esc(m.caption || (m.kind === 'growth' ? 'Growth check' : Dates.pretty(m.date)))}</h1>
     ${m.ideaId && ideaById(m.ideaId) ? `<a class="text-link" style="margin:6px 0 0" href="#/idea/${esc(m.ideaId)}">${ICON.pin.replace('class="icon"', 'class="icon" style="width:16px;height:16px;vertical-align:-3px"')} ${esc(ideaById(m.ideaId).title)}</a>` : ''}
     <p class="muted small" style="margin:4px 0 14px">${esc([!long && (m.caption || m.kind === 'growth' || m.kind === 'snapshot') ? Dates.pretty(m.date) : '', ages, m.kind === 'quote' ? whoText(m.who) : ''].filter(Boolean).join(' · '))}</p>
@@ -647,6 +653,15 @@ function renderMoment(id) {
       <button class="btn danger" id="del">Delete</button>
     </div>`;
   $('#back').onclick = e => { e.preventDefault(); goBack('#/timeline'); };
+  // Heart: a favorite shows under the ♥ filter on the Timeline.
+  $('#fav').onclick = e => {
+    const b = e.currentTarget, on = !m.fav;
+    m.fav = on;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', on);
+    b.innerHTML = on ? HEART_FILLED : ICON.heart;
+    DB.updateMoment(m, { fav: on }, [], []).catch(err => { toast(friendlyError(err), true); });
+  };
   $('#del').onclick = () => confirmBox('Delete this moment?',
     (m.photos || []).length ? 'Its photos will be deleted from A&W too. The originals on your phone aren’t touched.' : 'This can’t be undone.',
     'Delete', async () => { await DB.deleteMoment(m); toast('Deleted'); goBack('#/timeline'); });
