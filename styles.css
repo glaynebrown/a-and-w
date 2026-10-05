@@ -412,19 +412,27 @@ input:focus, textarea:focus, .btn:focus-visible, .chip:focus-visible { outline: 
 }
 .envelopes { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 12px; }
 .env-link { display: flex; flex-direction: column; align-items: center; text-decoration: none; }
-.envelope { width: 100%; height: auto; display: block; overflow: visible; }
+.envelope { position: relative; display: block; width: 100%; aspect-ratio: 900 / 553; container-type: inline-size; }
+.env-paper { display: block; width: 100%; height: 100%; border-radius: 2px; }
+/* The seal sits where it was in the painting; the initial is sized to the envelope. */
+.env-seal { position: absolute; left: 50.25%; top: 54.43%; width: 17.75%; aspect-ratio: 1; transform: translate(-50%, -50%); }
+.env-seal img { display: block; width: 100%; height: 100%; }
+.env-initial {
+  position: absolute; inset: 0; display: grid; place-items: center; padding-bottom: .3cqw;
+  font: italic 7.5cqw/1 Georgia, serif; color: rgba(255, 255, 255, .6); text-shadow: 0 .25cqw .2cqw rgba(60, 30, 20, .35);
+}
 .env-link .envelope { filter: drop-shadow(0 2px 3px rgba(90, 70, 40, .12)); transition: transform .15s; }
 .env-link:active .envelope { transform: scale(.97); }
 .env-name { font-family: var(--serif); font-size: 16px; margin-top: 4px; }
 .env-date { font-size: 12px; color: var(--muted); }
-.seal-letter { font-family: Georgia, serif; font-style: italic; font-size: 12px; fill: rgba(255, 255, 255, .78); }
 
 .paper {
   position: relative; background: #fffdf8; color: #4a4a3f; border-radius: 12px; padding: 26px 22px 28px;
   border: 1px solid #e8e1d6; box-shadow: inset 0 0 0 7px #fffdf8, inset 0 0 0 8px #efe6d6, 0 2px 10px rgba(90, 70, 40, .08);
 }
-.paper .corner { position: absolute; width: 38px; height: 38px; top: 10px; left: 10px; }
-.paper .corner + .corner { top: auto; left: auto; bottom: 10px; right: 10px; transform: rotate(180deg); }
+.paper { padding-top: 70px; padding-bottom: 76px; }
+.paper .corner { position: absolute; width: 86px; height: 86px; top: 4px; left: 4px; pointer-events: none; }
+.paper .corner.br { top: auto; left: auto; bottom: 4px; right: 4px; }
 .paper-date { text-align: right; font-size: 12px; color: #8a8a7a; margin: 0 4px 16px; }
 .date-tap { position: relative; display: block; }
 .date-tap input { position: absolute; inset: 0; opacity: 0; width: 100%; min-height: 0; cursor: pointer; }
@@ -452,13 +460,24 @@ input:focus, textarea:focus, .btn:focus-visible, .chip:focus-visible { outline: 
 .seal-overlay.done { opacity: 0; }
 .seal-stage { width: min(78vw, 320px); text-align: center; }
 .seal-stage p { font-family: var(--serif); font-style: italic; font-size: 18px; margin-top: 18px; opacity: 0; animation: fade-in .5s 1.2s forwards; }
-.envelope.sealing .flap { transform-box: fill-box; transform-origin: top; animation: flap-close .7s .15s ease-in-out both; }
-.envelope.sealing .sprig { opacity: 0; animation: fade-in .4s .75s forwards; }
-.envelope.sealing .seal { transform-box: fill-box; transform-origin: center; opacity: 0; animation: seal-press .45s .95s cubic-bezier(.3, 1.6, .5, 1) forwards; }
-@keyframes flap-close { from { transform: scaleY(-1); } to { transform: scaleY(1); } }
-@keyframes seal-press { from { opacity: 0; transform: scale(1.6); } to { opacity: 1; transform: scale(1); } }
+.envelope.sealing { box-shadow: 0 4px 14px rgba(90, 70, 40, .14); animation: env-in .5s ease-out both; }
+.envelope.sealing .env-seal { animation: seal-stamp .5s .65s cubic-bezier(.3, 1.6, .5, 1) both; }
+@keyframes env-in { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+/* The seal starts lifted (bigger, with a deeper shadow) and stamps down. */
+@keyframes seal-stamp {
+  from { transform: translate(-50%, -50%) scale(1.35); filter: drop-shadow(0 7px 6px rgba(60, 40, 20, .3)); }
+  to { transform: translate(-50%, -50%) scale(1); filter: drop-shadow(0 1px 1px rgba(60, 40, 20, .15)); }
+}
 @keyframes fade-in { to { opacity: 1; } }
-.write-letter .quill { margin-top: 2px; }
+.write-letter .quill { margin-top: 2px; width: 58px; }
+.quill img { display: block; width: 100%; height: auto; }
+.quill .quill-dark { display: none; }
+:root[data-theme="dark"] .quill .quill-light { display: none; }
+:root[data-theme="dark"] .quill .quill-dark { display: block; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .quill .quill-light { display: none; }
+  :root:not([data-theme="light"]) .quill .quill-dark { display: block; }
+}
 
 /* ---------- circle crop, question reordering ---------- */
 .now-photo-btn { position: relative; flex: none; padding: 0; border: 0; background: none; cursor: pointer; }

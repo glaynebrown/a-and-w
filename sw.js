@@ -7,11 +7,11 @@
      so the timeline scrolls fast and works with no signal. Cleared on sign-out.
    - Everything else (database, login) goes straight to the network.
      Firestore keeps its own offline copy of the timeline. */
-const APP_CACHE = 'aw-app-v11';
+const APP_CACHE = 'aw-app-v16';
 const PHOTO_CACHE = 'aw-photos-v2'; // v1 could hold failed downloads; it's cleared on update
 const APP_FILES = [
   './', 'index.html', 'styles.css', 'app.js', 'store.js', 'demo.js', 'dates.js', 'photos.js', 'todo.js', 'books.js', 'now.js', 'words.js', 'letters.js', 'seasons.js',
-  'firebase-config.js', 'manifest.json', 'icon-192.png', 'apple-touch-icon.png',
+  'firebase-config.js', 'manifest.json', 'icon-192.png', 'apple-touch-icon.png', 'paper-branch.png', 'paper-branch-br.png', 'quill.png', 'quill-dark.png', 'envelope.jpg', 'seal-blush.png', 'seal-sage.png',
 ];
 const SDK = ['app', 'auth', 'firestore', 'storage', 'functions']
   .map(name => `https://www.gstatic.com/firebasejs/10.14.1/firebase-${name}-compat.js`);
