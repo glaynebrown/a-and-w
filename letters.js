@@ -113,8 +113,14 @@ function sealFlourish(key) {
   el.className = 'seal-overlay';
   el.innerHTML = `<div class="seal-stage">${envelope(key, 'sealing')}<p>Sealed for ${esc(letterName(key))}</p></div>`;
   document.body.appendChild(el);
+  // Hand back while the envelope still covers the screen, so the Letters page
+  // is drawn underneath first; then the envelope fades away over it (instead
+  // of uncovering the writing page for a moment).
   return new Promise(resolve => setTimeout(() => {
-    el.classList.add('done');
-    setTimeout(() => { el.remove(); resolve(); }, 350);
+    resolve();
+    setTimeout(() => {
+      el.classList.add('done');
+      setTimeout(() => el.remove(), 350);
+    }, 150);
   }, 1900));
 }

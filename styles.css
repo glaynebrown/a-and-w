@@ -453,10 +453,8 @@ input:focus, textarea:focus, .btn:focus-visible, .chip:focus-visible { outline: 
 
 .seal-overlay {
   position: fixed; inset: 0; z-index: 40; display: grid; place-items: center;
-  background: rgba(251, 247, 242, .98); transition: opacity .35s;
+  background: var(--bg); transition: opacity .35s;
 }
-:root[data-theme="dark"] .seal-overlay { background: rgba(31, 30, 27, .98); }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .seal-overlay { background: rgba(31, 30, 27, .98); } }
 .seal-overlay.done { opacity: 0; }
 .seal-stage { width: min(78vw, 320px); text-align: center; }
 .seal-stage p { font-family: var(--serif); font-style: italic; font-size: 18px; margin-top: 18px; opacity: 0; animation: fade-in .5s 1.2s forwards; }
