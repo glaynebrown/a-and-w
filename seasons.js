@@ -97,7 +97,13 @@ function seasonBanners(where) {
       </a>
     </div>`;
   }
-  return `<div class="season-banners">${list.map(({ s, w, spots, status, last }) => {
+  // To do: the banners fold up under one "In season" line (tap to open or
+  // close; this phone remembers which), so the rest of the list is easy to get to.
+  const open = seasonsOpen();
+  return `<details class="season-group"${open ? ' open' : ''}>
+    <summary class="season season-summary"><span class="season-label">In season</span>
+      <span class="season-names">${list.map(x => esc(x.s.name)).join(' · ')}</span>${ICON.chevron}</summary>
+    <div class="season-banners">${list.map(({ s, w, spots, status, last }) => {
     if (status === 'done') return `<div class="season done">✓ ${esc(s.name)} · done this year</div>`;
     const when = status === 'soon' ? `starts ${esc(shortMD(w.start))}` : `through ${esc(shortMD(w.end))}`;
     return `<div class="season" data-season="${esc(s.key)}">
@@ -109,11 +115,15 @@ function seasonBanners(where) {
       ${last ? `<a class="season-last" href="#/moment/${esc(last.id)}">Last time: ${esc(shorten(last.caption || 'a memory'))} · ${esc(shortMD(last.date))}, ${last.date.slice(0, 4)}</a>` : ''}
       <button type="button" class="link-btn season-skip" data-season-skip="${esc(s.key)}" data-year="${w.year}">Not this year</button>
     </div>`;
-  }).join('')}</div>`;
+  }).join('')}</div></details>`;
 }
+const seasonsOpen = () => { try { return localStorage.getItem('aw-seasons-open') !== '0'; } catch { return true; } };
 
 // Wires up the banner buttons after a page draws them.
 function bindSeasonBanners(root = document) {
+  $$('.season-group', root).forEach(d => d.addEventListener('toggle', () => {
+    try { localStorage.setItem('aw-seasons-open', d.open ? '1' : '0'); } catch {}
+  }));
   $$('.season-x', root).forEach(b => b.onclick = () => {
     const card = b.closest('.season-home');
     const seasonHomeHidden = [...new Set([...(state.settings.seasonHomeHidden || []), ...card.dataset.tags.split(',')])].slice(-40);

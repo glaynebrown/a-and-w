@@ -358,6 +358,7 @@ input:focus, textarea:focus, .btn:focus-visible, .chip:focus-visible { outline: 
   flex: none; width: 84px; height: 84px; border-radius: 50%; overflow: hidden; background: var(--sand-bg);
   display: grid; place-items: center; font-family: var(--serif); font-size: 32px; color: var(--muted);
 }
+.now-photo { position: relative; }
 .now-photo img { width: 100%; height: 100%; object-fit: cover; }
 .answers { margin: 14px 0 0; display: grid; gap: 10px; }
 .answers div { border-top: 1px solid var(--border); padding-top: 8px; }
@@ -490,6 +491,7 @@ input:focus, textarea:focus, .btn:focus-visible, .chip:focus-visible { outline: 
   width: 220px; height: 220px; margin: 16px auto 12px; border-radius: 50%; overflow: hidden;
   background: var(--sand-bg); touch-action: none; cursor: grab; box-shadow: 0 0 0 4px var(--surface), 0 0 0 5px var(--border);
 }
+.crop-circle { position: relative; }
 .crop-circle img { width: 100%; height: 100%; object-fit: cover; user-select: none; -webkit-user-drag: none; pointer-events: none; }
 .crop-zoom { display: flex; align-items: center; gap: 10px; }
 .crop-zoom input { flex: 1; accent-color: var(--sage-ink); }
@@ -579,6 +581,16 @@ button.web-card:disabled { opacity: .6; }
 /* ---------- seasonal traditions ---------- */
 .head-actions { display: flex; gap: 4px; align-items: center; }
 .season-banners { display: grid; gap: 10px; margin-bottom: 16px; }
+/* The fold-up "In season" line on To do; open, it sits above the banners. */
+.season-group { margin-bottom: 16px; }
+.season-group .season-banners { margin: 10px 0 0; }
+.season-summary { display: flex; align-items: center; gap: 10px; padding: 10px 14px; list-style: none; cursor: pointer; }
+.season-summary::-webkit-details-marker { display: none; }
+.season-summary .season-label { margin: 0; flex: none; }
+.season-names { flex: 1; min-width: 0; font-size: 13px; opacity: .85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.season-summary .icon { flex: none; width: 18px; height: 18px; transition: transform .2s; }
+.season-group[open] .season-summary .icon { transform: rotate(180deg); }
+.season-group[open] .season-names { visibility: hidden; }
 .season {
   position: relative; border-radius: var(--radius); padding: 12px 14px 10px;
   background: #f6ecd6; border: 1px solid #ead9b3; color: #5e4a1f;

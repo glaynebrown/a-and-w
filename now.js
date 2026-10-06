@@ -35,12 +35,22 @@ const sameAnswers = (a = {}, b = {}) => JSON.stringify(orderedAnswers(a)) === JS
 // Newest first.
 const snapshotsFor = key => state.moments.filter(m => m.kind === 'snapshot' && (m.who || [])[0] === key);
 
-// The newest photo tagged only this twin (a snapshot photo or a timeline
-// moment). Photos of both twins together never become one twin's circle.
+// The circle photo. Once you've adjusted one, it stays (adding new photos
+// doesn't swap it out) until you pick a new one when updating the snapshot.
+// Otherwise it's the newest photo tagged only this twin (a snapshot photo or a
+// timeline moment); group photos never become one twin's circle.
 function currentPhoto(key) {
-  const solo = state.moments.find(m => isOnTimeline(m) && (m.photos || []).length
+  const pinned = ((state.settings.nowCrop || {})[key] || {}).src;
+  if (pinned) {
+    for (const m of state.moments) {
+      if (!(m.who || []).includes(key)) continue;
+      const p = (m.photos || []).find(x => !x.video && photoId(x) === pinned);
+      if (p) return p;
+    }
+  }
+  const solo = state.moments.find(m => isOnTimeline(m) && (m.photos || []).some(x => !x.video)
     && (m.who || []).length === 1 && m.who[0] === key);
-  return solo ? solo.photos[0] : null;
+  return solo ? solo.photos.find(x => !x.video) : null;
 }
 
 // What changed in each snapshot compared with the one before it.
@@ -199,6 +209,12 @@ function renderNowForm(key, snapId) {
       const data = { kind: 'snapshot', who: [key], date: older ? older.date : today, caption: '', answers };
       if (todays) await DB.updateMoment(todays, data, prepared, pick.removed);
       else await DB.addMoment(data, prepared);
+      // A new photo here becomes the circle (instead of the one adjusted before).
+      if (prepared.length && (state.settings.nowCrop || {})[key]) {
+        const nowCrop = { ...state.settings.nowCrop, [key]: null };
+        await DB.saveSettings({ nowCrop });
+        state.settings = { ...state.settings, nowCrop };
+      }
       state.nowTwin = key;
       toast(older ? 'Saved' : 'Saved, and added to the timeline');
       goBack('#/now');
@@ -217,51 +233,93 @@ function snapshotSummary(m, max = 4) {
 }
 
 // ---------- the circle photo ----------
-// How the photo sits in the circle: x/y = which part is centered (0-100%),
-// zoom = how far in. Saved per twin; a new photo starts centered again.
+// How the photo sits in the circle: cx/cy = the spot in the photo that's in
+// the middle of the circle (0-1 across and down), zoom = how far in, ar = the
+// photo's width / height. Saved per twin in settings.nowCrop.
 const photoId = p => p.path || p.url;
 function cropFor(key, photo) {
   const c = (state.settings.nowCrop || {})[key];
-  return c && c.src === photoId(photo) ? c : { x: 50, y: 50, zoom: 1 };
+  if (!c || c.src !== photoId(photo)) return { cx: 0.5, cy: 0.5, zoom: 1, ar: photo.w && photo.h ? photo.w / photo.h : 0 };
+  // Older saves used x/y percentages.
+  return { cx: c.cx ?? (c.x ?? 50) / 100, cy: c.cy ?? (c.y ?? 50) / 100, zoom: c.zoom || 1, ar: c.ar || (photo.w && photo.h ? photo.w / photo.h : 0) };
 }
-const cropStyle = c => `object-position:${c.x}% ${c.y}%;transform:scale(${c.zoom});transform-origin:${c.x}% ${c.y}%`;
+// The photo's size and spot inside the circle, in % of the circle, so the same
+// numbers work for the small circle and the big one in the adjuster.
+function cropBox(c) {
+  const ar = c.ar || 1;
+  const w = (ar >= 1 ? ar : 1) * 100 * c.zoom, h = (ar >= 1 ? 1 : 1 / ar) * 100 * c.zoom;
+  // Keep the circle covered: the middle can't go closer to an edge than half a circle.
+  const cx = Math.min(1 - 50 / w, Math.max(50 / w, c.cx)), cy = Math.min(1 - 50 / h, Math.max(50 / h, c.cy));
+  return { w, h, cx, cy, left: 50 - cx * w, top: 50 - cy * h };
+}
+const cropStyle = c => {
+  if (!c.ar) return 'width:100%;height:100%;object-fit:cover';
+  const b = cropBox(c);
+  return `position:absolute;max-width:none;object-fit:fill;width:${b.w.toFixed(2)}%;height:${b.h.toFixed(2)}%;left:${b.left.toFixed(2)}%;top:${b.top.toFixed(2)}%`;
+};
 // The preview copy is sharp enough for the small circle unless it's zoomed in.
 const circleImg = (key, photo) => {
   const c = cropFor(key, photo);
   return `<img src="${esc(c.zoom > 1.4 ? photo.url : (photo.thumbUrl || photo.url))}" alt="" style="${cropStyle(c)}">`;
 };
 
+// Drag to move the photo (it follows your finger), pinch or use the slider to zoom.
 function openCrop(key) {
   const photo = currentPhoto(key);
   if (!photo) return;
   const c = { ...cropFor(key, photo) };
   openModal(`<h2>Adjust the circle</h2>
-    <p>Drag the photo to move it. Use the slider to zoom.</p>
+    <p>Drag the photo to move it. Pinch or use the slider to zoom.</p>
     <div class="crop-circle" id="cc"><img src="${esc(photo.url)}" alt="" draggable="false"></div>
-    <label class="crop-zoom"><span class="muted small">Zoom</span><input type="range" id="cz" min="1" max="3" step="0.05" value="${c.zoom}"></label>
+    <label class="crop-zoom"><span class="muted small">Zoom</span><input type="range" id="cz" min="1" max="4" step="0.05" value="${c.zoom}"></label>
     <div class="actions"><button class="btn" id="creset">Reset</button><button class="btn primary" id="csave">Save</button></div>
     <p class="hint" style="text-align:center;margin-top:10px">Want a different photo? Add one when you update the snapshot.</p>`,
   (root, close) => {
     const circle = $('#cc', root), img = $('img', circle);
-    const draw = () => { img.style.cssText = cropStyle(c); $('#cz', root).value = c.zoom; };
+    const draw = () => {
+      const b = cropBox(c);
+      c.cx = b.cx; c.cy = b.cy;            // stay inside the edges
+      img.style.cssText = cropStyle(c);
+      $('#cz', root).value = c.zoom;
+    };
+    // The photo's real shape, read once it loads (older photos didn't save it).
+    const ready = () => { if (img.naturalWidth) { c.ar = img.naturalWidth / img.naturalHeight; draw(); } };
+    if (img.complete) ready(); else img.onload = ready;
     draw();
-    let drag = null;
-    circle.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY, cx: c.x, cy: c.y }; try { circle.setPointerCapture(e.pointerId); } catch {} });
+
+    const pts = new Map();
+    let start = null;
+    const snap = () => {
+      const [a, b2] = [...pts.values()];
+      start = { cx: c.cx, cy: c.cy, zoom: c.zoom, x: a.x, y: a.y, dist: b2 ? Math.hypot(a.x - b2.x, a.y - b2.y) : 0 };
+    };
+    circle.addEventListener('pointerdown', e => {
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      try { circle.setPointerCapture(e.pointerId); } catch {}
+      snap();
+    });
     circle.addEventListener('pointermove', e => {
-      if (!drag) return;
-      // Dragging right shows more of the left side, so the center point moves the other way.
-      const k = 100 / (circle.clientWidth * c.zoom);
-      c.x = Math.min(100, Math.max(0, drag.cx - (e.clientX - drag.x) * k));
-      c.y = Math.min(100, Math.max(0, drag.cy - (e.clientY - drag.y) * k));
+      if (!pts.has(e.pointerId) || !start) return;
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      const [a, b2] = [...pts.values()];
+      if (b2 && start.dist) {
+        c.zoom = Math.min(4, Math.max(1, start.zoom * Math.hypot(a.x - b2.x, a.y - b2.y) / start.dist));
+      } else {
+        // The photo moves with your finger: moving right shows more of its left side.
+        const box = cropBox({ ...c, zoom: c.zoom }), px = circle.clientWidth / 100;
+        c.cx = start.cx - (a.x - start.x) / (box.w * px);
+        c.cy = start.cy - (a.y - start.y) / (box.h * px);
+      }
       draw();
     });
-    const end = () => { drag = null; };
+    const end = e => { pts.delete(e.pointerId); if (pts.size) snap(); else start = null; };
     circle.addEventListener('pointerup', end);
     circle.addEventListener('pointercancel', end);
     $('#cz', root).oninput = e => { c.zoom = Number(e.target.value); draw(); };
-    $('#creset', root).onclick = () => { Object.assign(c, { x: 50, y: 50, zoom: 1 }); draw(); };
+    $('#creset', root).onclick = () => { Object.assign(c, { cx: 0.5, cy: 0.5, zoom: 1 }); draw(); };
     $('#csave', root).onclick = e => busy(e.target, async () => {
-      const nowCrop = { ...(state.settings.nowCrop || {}), [key]: { src: photoId(photo), x: Math.round(c.x), y: Math.round(c.y), zoom: Math.round(c.zoom * 100) / 100 } };
+      const r = n => Math.round(n * 1000) / 1000;
+      const nowCrop = { ...(state.settings.nowCrop || {}), [key]: { src: photoId(photo), cx: r(c.cx), cy: r(c.cy), zoom: r(c.zoom), ar: r(c.ar || 1) } };
       await DB.saveSettings({ nowCrop });
       state.settings = { ...state.settings, nowCrop };
       close();
