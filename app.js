@@ -269,6 +269,7 @@ function route() {
     return page === 'reset' ? renderReset() : renderLogin();
   }
   if (!state.settings || !state.loaded) return renderLoading();
+  paintTwinColors();
 
   showChrome(TAB_ROUTES.includes(page) && !id, page);
   const screens = {
@@ -944,6 +945,7 @@ function renderSettings() {
         <label class="field"><span class="field-label">Original due date</span>
           <input type="date" id="due" value="${esc(s.dueDate || '')}"></label>
         <p class="hint">Used for “32 weeks” on moments from the pregnancy.</p>
+        ${s.twins.map(t => colorPickerHtml(t, twinColor(t.key))).join('')}
       </section>
 
       <section class="settings-group card">
@@ -979,6 +981,7 @@ function renderSettings() {
       <button class="btn block" id="out">${DB.demo ? 'Leave sample mode' : 'Sign out'}</button>
     </section>`;
 
+  s.twins.forEach(t => bindColorPicker(view, t.key));
   $$('[data-theme]').forEach(b => b.onclick = () => {
     setTheme(b.dataset.theme);
     $$('[data-theme]').forEach(x => x.setAttribute('aria-pressed', x === b));
@@ -995,14 +998,14 @@ function renderSettings() {
     err.hidden = true;
     busy($('#save'), async () => {
       const patch = {
-        twins: s.twins.map((t, i) => ({ ...t, name: names[i] })),
+        twins: state.settings.twins.map((t, i) => ({ ...t, name: names[i] })),
         birthday: bday,
         dueDate: Dates.valid($('#due').value) ? $('#due').value : '',
         // Moving clears the saved map point so drive times are worked out again.
         home: home === (s.home && s.home.label) ? s.home : { label: home },
       };
       await DB.saveSettings(patch);
-      state.settings = { ...s, ...patch };
+      state.settings = { ...state.settings, ...patch };
       toast('Saved');
       goBack('#/');
     });

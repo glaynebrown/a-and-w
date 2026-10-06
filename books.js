@@ -145,7 +145,6 @@ function lineChart(measure, label, unit) {
   const xStep = xMax <= 12 ? 3 : xMax <= 36 ? 6 : 12;
   const xTicks = [...Array(Math.floor(xMax / xStep) + 1)].map((_, n) => n * xStep);
   const yTicks = [...Array(Math.round((yMax - yMin) / step) + 1)].map((_, n) => yMin + n * step);
-  const color = key => (key === 'will' ? 'var(--sage-ink)' : 'var(--blush-ink)');
 
   return `<section class="card chart-card">
     <div class="chart-head"><h2>${label}</h2><span class="muted small">${unit}</span></div>
@@ -153,12 +152,12 @@ function lineChart(measure, label, unit) {
       ${yTicks.map(v => `<line x1="${L}" x2="${W - R}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}" class="grid-line"/>
         <text x="${L - 6}" y="${Y(v).toFixed(1)}" text-anchor="end" dominant-baseline="middle" class="axis">${Math.round(v * 10) / 10}</text>`).join('')}
       ${xTicks.map(v => `<text x="${X(v).toFixed(1)}" y="${H - 8}" text-anchor="middle" class="axis">${v}${v === xTicks[xTicks.length - 1] ? ' mo' : ''}</text>`).join('')}
-      ${series.map(s => `<polyline points="${s.pts.map(p => `${X(p.x).toFixed(1)},${Y(p.y).toFixed(1)}`).join(' ')}" style="fill:none;stroke:${color(s.t.key)};stroke-width:2"/>
-        ${s.pts.map(p => `<circle cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="3.5" class="dot" data-dot="${esc(p.m.id)}" style="fill:${color(s.t.key)}"><title>${esc(s.t.name)}: ${p.y} ${unit}, ${esc(Dates.pretty(p.m.date))}</title></circle>`).join('')}`).join('')}
+      ${series.map(s => `<polyline points="${s.pts.map(p => `${X(p.x).toFixed(1)},${Y(p.y).toFixed(1)}`).join(' ')}" class="${s.t.key}" style="fill:none;stroke:var(--k-ink);stroke-width:2"/>
+        ${s.pts.map(p => `<circle cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="3.5" class="dot ${s.t.key}" data-dot="${esc(p.m.id)}" style="fill:var(--k-ink)"><title>${esc(s.t.name)}: ${p.y} ${unit}, ${esc(Dates.pretty(p.m.date))}</title></circle>`).join('')}`).join('')}
       ${series.flatMap(s => s.pts).map(p => `<circle cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="11" class="dot-hit" data-hit="${esc(p.m.id)}"/>`).join('')}
     </svg>
     <div class="dot-tip" hidden></div>
-    <div class="legend">${series.map(s => `<span><i style="background:${color(s.t.key)}"></i>${esc(s.t.name)}</span>`).join('')}</div>
+    <div class="legend">${series.map(s => `<span><i class="${s.t.key}" style="background:var(--k-ink)"></i>${esc(s.t.name)}</span>`).join('')}</div>
   </section>`;
 }
 
@@ -245,7 +244,7 @@ async function makeBook(pick, progress) {
   const S = 576, M = 48, W = S - 2 * M, GAP = 6, BOTTOM = S - M - 10;
   const C = {
     bg: [251, 247, 242], text: [74, 74, 63], muted: [138, 138, 122], line: [232, 225, 214],
-    will: [62, 90, 58], millie: [138, 74, 62], gold: [176, 138, 62], card: [255, 255, 255],
+    will: twinInkRgb('will'), millie: twinInkRgb('millie'), gold: [176, 138, 62], card: [255, 255, 255],
   };
   const pxPerPt = pick.print ? 3 : 1.6;
   const twin = twins().find(t => t.key === pick.who);

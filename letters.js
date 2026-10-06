@@ -38,8 +38,7 @@ const QUILL = '<span class="quill"><img class="quill-light" src="quill.png" alt=
 
 // The envelope: the user's painted envelope with its seal lifted off
 // (envelope.jpg), and on top the wax seal in the twin's color with their
-// initial pressed in (seal-<color>.png). Made by art/make-envelope.py.
-const sealColor = key => ({ will: 'sage', millie: 'blush' }[key] || 'sage');
+// initial pressed in (sealSrc in colors.js). Made by art/make-envelope.py.
 // One child: their color and initial. More than one: a gold seal with a heart
 // pressed in (their names are written under the envelope).
 const SEAL_HEART = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-7.5-10.3A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 2.6c0 5.7-7.5 10.3-7.5 10.3z"/></svg>';
@@ -48,7 +47,7 @@ function envelope(who, cls = '') {
   const many = keys.length > 1;
   const mark = many ? SEAL_HEART : esc((letterName(keys[0]) || '?')[0]);
   return `<span class="envelope ${cls}" aria-hidden="true"><img class="env-paper" src="envelope.jpg" alt="">
-    <span class="env-seal"><img src="seal-${many ? 'gold' : sealColor(keys[0])}.png" alt=""><span class="env-initial${many ? ' heart' : ''}">${mark}</span></span></span>`;
+    <span class="env-seal"><img src="${sealSrc(many ? 'gold' : twinColor(keys[0]))}" data-seal="${many ? '' : colorHex(twinColor(keys[0])) || ''}" alt=""><span class="env-initial${many ? ' heart' : ''}">${mark}</span></span></span>`;
 }
 
 // The stationery's corners: a line-drawn sprig of baby's breath, top left and
