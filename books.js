@@ -36,7 +36,7 @@ async function saveFile(blob, name) {
 
 const fileSafe = s => String(s).replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '-').slice(0, 40);
 const years = () => [...new Set(state.moments.map(m => m.date.slice(0, 4)))].sort();
-// Letters to a twin within the book's years, oldest first.
+// Letters to a twin (alone or to both) within the book's years, oldest first.
 const lettersFor = (key, year) => lettersTo(key).filter(l => year === 'all' || l.date.startsWith(year)).reverse();
 
 // ---------- Books page ----------
@@ -286,15 +286,18 @@ async function makeBook(pick, progress) {
 
   // Letter(s)
   const letterFor = twin ? [twin] : twins();
-  for (const t of letterFor) {
-    for (const l of lettersFor(t.key, pick.year)) {
+  // One twin's book: their letters, including ones to both. The "Both" book: every letter once.
+  const bookLetters = twin ? lettersFor(twin.key, pick.year)
+    : state.moments.filter(m => m.kind === 'letter' && (pick.year === 'all' || m.date.startsWith(pick.year))).reverse();
+  {
+    for (const l of bookLetters) {
       const text = l.caption.trim();
       newPage();
       font('helvetica', 'normal', 9); color(C.muted);
       doc.text(pdfText(`${Dates.pretty(l.date)}  ·  ${ageOn(l.date)}`), M, y + 8);
       y += 26;
       font('times', 'italic', 20); color(C.text);
-      if (!/^dear\b/i.test(text)) { doc.text(pdfText(`Dear ${t.fullName || t.name},`), M, y + 16); y += 40; }
+      if (!/^dear\b/i.test(text)) { doc.text(pdfText(`Dear ${letterNames(l.who, 'and')},`), M, y + 16); y += 40; }
       font('times', 'normal', 13);
       for (const line of doc.splitTextToSize(pdfText(text), W)) {
         if (y > BOTTOM - 10) newPage();

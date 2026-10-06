@@ -421,6 +421,8 @@ input:focus, textarea:focus, .btn:focus-visible, .chip:focus-visible { outline: 
   position: absolute; inset: 0; display: grid; place-items: center; padding-bottom: .3cqw;
   font: italic 7.5cqw/1 Georgia, serif; color: rgba(255, 255, 255, .6); text-shadow: 0 .25cqw .2cqw rgba(60, 30, 20, .35);
 }
+/* A letter to more than one child: a heart pressed into the gold seal. */
+.env-initial.heart svg { width: 7cqw; height: 7cqw; margin-top: .4cqw; fill: rgba(255, 255, 255, .6); filter: drop-shadow(0 .25cqw .2cqw rgba(60, 30, 20, .35)); }
 .env-link .envelope { filter: drop-shadow(0 2px 3px rgba(90, 70, 40, .12)); transition: transform .15s; }
 .env-link:active .envelope { transform: scale(.97); }
 .env-name { font-family: var(--serif); font-size: 16px; margin-top: 4px; }
